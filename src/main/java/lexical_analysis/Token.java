@@ -32,6 +32,14 @@ public class Token {
         this.value = value;
     }
 
+    public String getName() {
+        return this.name;
+    }
+
+    public String getValue() {
+        return this.value;
+    }
+
     public String toString() {
         return String.format("<Token name=\"%s\" value=\"%s\">", this.name, this.value);
     }

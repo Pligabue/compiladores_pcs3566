@@ -53,7 +53,7 @@ public class LexicalAnalyser {
         return word.split(String.format("(?<=\\Q%s\\E)|(?=\\Q%s\\E)", subString, subString));
     }
 
-    private ArrayList<String> separateStringLiterals(String line) {
+    private ArrayList<String> separateStringLiterals(String line) { ////// Separa cadeias fixas
 
         String[] splitOnQuotes = line.split("(?<=(?:[^\\\\]|^)\")|(?<!\\\\)(?=\")");
         ArrayList<String> wordList = new ArrayList<String>();
