@@ -3,6 +3,7 @@ package parser;
 import java.util.ArrayList;
 import java.util.Set;
 
+import jdk.tools.jlink.internal.plugins.ExcludePlugin;
 import lexical_analysis.LexicalAnalyser;
 import lexical_analysis.Token;
 
@@ -16,7 +17,7 @@ public class Parser {
                                              "goto", "if", "for", "next", "dim", "def",
                                              "gosub", "return", "remark", "+", "-", 
                                              "*", "/");
-    private Node root = new Node("program", 0);
+    private Node root = new Node("program");
 
     private Node currentNode = root;
     private Token currentToken;
@@ -101,41 +102,87 @@ public class Parser {
     }
 
     private void handleExpression() throws Exception {
-        currentNode.addChild(getSubExpression());
+        currentNode.addChild(getExpressions());
         if (this.parenthesesCount > 0)
-            throw new Exception("Erro nos parênteses.\n");
+            throw new Exception("Parentheses error.\n");
     }
 
-    private Node getSubExpression() throws Exception {
-        Node leftNode = new Node();
-        Node operation = new Node();
-        Node rightNode = new Node();
+    private enum ExpStates {S0, S1, S2, S3}
 
-        if (currentToken.getName().equals("identifier") || currentToken.getName().equals("literal")) {
-            leftNode.setType(currentToken.getValue());
-            getNextToken();
-        } else if (currentToken.getName().equals("separator") && currentToken.getValue().equals("(")) {
-            getNextToken();
-            this.parenthesesCount++;
-            leftNode = getSubExpression();
-        } else 
-            throw new Exception("Must be assigned to something.\n");
+    private Node getExpressions() throws Exception {
 
-        if (currentToken.getName().equals("separator") && currentToken.getValue().equals(")")) {
-            getNextToken();
-            this.parenthesesCount--;
-            return leftNode;
-        } else if (currentToken.getName().equals("operator")) {
-            operation.setType(currentToken.getValue());
-            getNextToken();
-        } else {
-            return leftNode;
-        }
-        
-        rightNode = getSubExpression();
+        Node mainNode, tempNode, rootNode;
+        boolean automatonDone = false;
+        ExpStates state = ExpStates.S0;
 
-        operation.addChild(leftNode);
-        operation.addChild(rightNode);
-        return operation;
+        mainNode = new Node();
+        rootNode = mainNode;
+
+        while (!automatonDone) {    
+            switch (state) {
+                case S0:
+                    if (currentToken.getName().equals("identifier") || currentToken.getName().equals("literal")) {
+                        mainNode.setType(currentToken.getValue());
+                        state = ExpStates.S1;
+                    } else if (currentToken.getName().equals("separator") && currentToken.getValue().equals("(")) {
+                        this.parenthesesCount++;
+                        state = ExpStates.S2;
+                    } else 
+                        throw new Exception("Must be assigned to something.\n");
+                    break;
+            
+                case S1:
+                    if (currentToken.getName().equals("operator")) {
+                        tempNode = new Node();
+                        mainNode.splitParent(tempNode);
+                        mainNode = tempNode;
+
+                        tempNode = new Node();
+                        mainNode.addChild(tempNode);
+                        mainNode = tempNode;
+
+                        state = ExpStates.S0;
+                    } else {
+                        automatonDone = true;
+                    }
+                    break;
+            
+                case S2:
+                    if (currentToken.getName().equals("identifier") || currentToken.getName().equals("literal")) {
+                        mainNode.setType(currentToken.getValue());
+                        state = ExpStates.S3;
+                    } else if (currentToken.getName().equals("separator") && currentToken.getValue().equals("(")) {
+                        this.parenthesesCount++;
+                        state = ExpStates.S2;
+                    } else 
+                        throw new Exception("Must be assigned to something.\n");
+                    break;
+            
+                case S3:
+                    if (currentToken.getName().equals("operator")) {
+                        tempNode = new Node(currentToken.getValue());
+                        mainNode.splitParent(tempNode);
+                        mainNode = tempNode;
+
+                        tempNode = new Node();
+                        mainNode.addChild(tempNode);
+                        mainNode = tempNode;
+
+                        state = ExpStates.S2;
+                    } else if (currentToken.getName().equals("separator") && currentToken.getValue().equals(")")) {
+                        this.parenthesesCount--;
+                        mainNode = mainNode.getParent();
+                        if (this.parenthesesCount == 0) 
+                            state = ExpStates.S1;
+                    } else
+                        throw new Exception("Expected operator or closing parenthesis");
+                    break;
+
+                default:
+                    throw new Exception("Invalid state.");
+            }   
+            getNextToken(); 
+        }   
+        return rootNode; 
     }
 }

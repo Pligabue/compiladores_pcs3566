@@ -4,9 +4,8 @@ import java.util.ArrayList;
 
 public class Node {
     private String type;
-    private int level;
-    private int lineNumber;
     private Node parent = null;
+    private int lineNumber;
     private ArrayList<Node> children = new ArrayList<Node>();
 
     public Node() { }
@@ -15,23 +14,26 @@ public class Node {
         this.type = type;
     }
 
-    public Node(String type, int level) {
-        this.type = type;
-        this.level = level;
-    }
-
     public void addChild(Node node) {
         this.children.add(node);
         node.setParent(this);
-        node.setLevel(this.level + 1);
+    }
+
+    public void addParent(Node node) {
+        node.addChild(this);
+    }
+
+    public void splitParent(Node node) {
+        if (!isRoot()) {
+            int index = parent.getChildren().indexOf(this);
+            parent.getChildren().set(index, node);
+            node.setParent(parent);
+        }
+        addParent(node);
     }
 
     public void setParent(Node node) {
-        this.parent = node;
-    }
-
-    public void setLevel(int level) {
-        this.level = level;
+        parent = node;
     }
 
     public void setType(String type) {
@@ -46,8 +48,12 @@ public class Node {
         return this.parent;
     } 
 
-    public int getLevel() {
-        return this.level;
+    public String getType() {
+        return this.type;
+    }
+
+    public int getLineNumber() {
+        return this.lineNumber;
     }
 
     public ArrayList<Node> getChildren() {
@@ -64,5 +70,58 @@ public class Node {
 
     public boolean isOuter() {
         return !isInner();
+    }
+
+    public int getLevel() {
+        int level = 0;
+        Node currentNode = this;
+        while (!currentNode.isRoot()) {
+            currentNode = currentNode.parent;
+            level++;
+        }
+        return level;
+    }
+
+    public Node getRoot() {
+        Node currentNode = this;
+        while (!currentNode.isRoot()) {
+            currentNode = currentNode.parent;
+        }
+        return currentNode;
+    }
+
+    public void printNode() {
+        printNode(2);
+    }
+
+    public void printNode(int offset) {
+        System.out.printf("type=%s\n", this.type);
+        for (Node child : children) {
+            for (int i = 0; i < offset; i++)
+                System.out.printf(" ");
+            child.printNode(offset + 2);
+        }
+    }
+
+    public void printTree() {
+        getRoot().printNode();
+    }
+
+    public static void main(String[] args) {
+        Node main = new Node("Bola");
+        Node child = new Node("Elevador");
+        main.addChild(new Node("Carro"));
+        main.addChild(new Node("Dado"));
+        main.addChild(child);
+
+        child.addChild(new Node("Fato"));
+        child.splitParent(new Node("Gato"));
+        
+        child.printTree();
+    }
+    
+    @Override
+    public String toString() {
+        return String.format("<Node type=%s>", type);
     }
 }
