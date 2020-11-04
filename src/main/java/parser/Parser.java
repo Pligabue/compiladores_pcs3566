@@ -111,21 +111,27 @@ public class Parser {
 
     private Node getExpressions() throws Exception {
 
-        Node mainNode, tempNode, rootNode;
+        Node mainNode, tempNode;
         boolean automatonDone = false;
         ExpStates state = ExpStates.S0;
 
         mainNode = new Node();
-        rootNode = mainNode;
 
         while (!automatonDone) {    
             switch (state) {
                 case S0:
                     if (currentToken.getName().equals("identifier") || currentToken.getName().equals("literal")) {
                         mainNode.setType(currentToken.getValue());
+                        if (mainNode.hasSiblings()) {
+                            mainNode = mainNode.getParent();
+                        }
                         state = ExpStates.S1;
                     } else if (currentToken.getName().equals("separator") && currentToken.getValue().equals("(")) {
                         this.parenthesesCount++;
+                        tempNode = new Node();
+                        mainNode.addChild(tempNode);
+                        mainNode = tempNode;
+
                         state = ExpStates.S2;
                     } else 
                         throw new Exception("Must be assigned to something.\n");
@@ -133,13 +139,11 @@ public class Parser {
             
                 case S1:
                     if (currentToken.getName().equals("operator")) {
-                        tempNode = new Node();
+                        tempNode = new Node(currentToken.getValue());
                         mainNode.splitParent(tempNode);
-                        mainNode = tempNode;
 
-                        tempNode = new Node();
-                        mainNode.addChild(tempNode);
-                        mainNode = tempNode;
+                        mainNode = new Node();
+                        tempNode.addChild(mainNode);
 
                         state = ExpStates.S0;
                     } else {
@@ -150,9 +154,16 @@ public class Parser {
                 case S2:
                     if (currentToken.getName().equals("identifier") || currentToken.getName().equals("literal")) {
                         mainNode.setType(currentToken.getValue());
+                        if (mainNode.hasSiblings()) {
+                            mainNode = mainNode.getParent();
+                        }
                         state = ExpStates.S3;
                     } else if (currentToken.getName().equals("separator") && currentToken.getValue().equals("(")) {
                         this.parenthesesCount++;
+                        tempNode = new Node();
+                        mainNode.addChild(tempNode);
+                        mainNode = tempNode;
+
                         state = ExpStates.S2;
                     } else 
                         throw new Exception("Must be assigned to something.\n");
@@ -162,16 +173,20 @@ public class Parser {
                     if (currentToken.getName().equals("operator")) {
                         tempNode = new Node(currentToken.getValue());
                         mainNode.splitParent(tempNode);
-                        mainNode = tempNode;
 
-                        tempNode = new Node();
-                        mainNode.addChild(tempNode);
-                        mainNode = tempNode;
+                        mainNode = new Node();
+                        tempNode.addChild(mainNode);
 
                         state = ExpStates.S2;
                     } else if (currentToken.getName().equals("separator") && currentToken.getValue().equals(")")) {
                         this.parenthesesCount--;
-                        mainNode = mainNode.getParent();
+                        tempNode = mainNode.getParent();
+                        if (!tempNode.hasType()) {
+                            mainNode.replaceParentWithSelf();
+                        } else {
+                            mainNode = tempNode;
+                        }
+
                         if (this.parenthesesCount == 0) 
                             state = ExpStates.S1;
                     } else
@@ -183,6 +198,6 @@ public class Parser {
             }   
             getNextToken(); 
         }   
-        return rootNode; 
+        return mainNode.getRoot(); 
     }
 }

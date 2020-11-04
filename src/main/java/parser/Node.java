@@ -32,6 +32,26 @@ public class Node {
         addParent(node);
     }
 
+    public void replaceParentWithSelf() {
+        if (isRoot()) 
+            return;
+        if (parent.isRoot()) {
+            parent.getChildren().remove(this);
+            parent.setParent(null);
+
+            parent = null;
+        } else {
+            Node grandparent = parent.getParent();
+            int index = grandparent.getChildren().indexOf(parent);
+            grandparent.getChildren().set(index, this);
+            
+            parent.getChildren().remove(this);
+            parent.setParent(null);
+
+            setParent(grandparent);
+        }
+    }
+
     public void setParent(Node node) {
         parent = node;
     }
@@ -58,6 +78,14 @@ public class Node {
 
     public ArrayList<Node> getChildren() {
         return this.children;
+    }
+
+    public boolean hasType() {
+        return this.type != null;
+    }
+
+    public boolean hasSiblings() {
+        return this.parent.getChildren().size() > 1;
     }
 
     public boolean isRoot() {
@@ -110,6 +138,8 @@ public class Node {
     public static void main(String[] args) {
         Node main = new Node("Bola");
         Node child = new Node("Elevador");
+        Node grandchild = new Node("Horace");
+
         main.addChild(new Node("Carro"));
         main.addChild(new Node("Dado"));
         main.addChild(child);
@@ -117,7 +147,10 @@ public class Node {
         child.addChild(new Node("Fato"));
         child.splitParent(new Node("Gato"));
         
-        child.printTree();
+        child.addChild(grandchild);
+        grandchild.replaceParentWithSelf();
+
+        main.printTree();
     }
     
     @Override
