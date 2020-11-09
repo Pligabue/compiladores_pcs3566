@@ -3,7 +3,6 @@ package parser;
 import java.util.ArrayList;
 import java.util.Set;
 
-import jdk.tools.jlink.internal.plugins.ExcludePlugin;
 import lexical_analysis.LexicalAnalyser;
 import lexical_analysis.Token;
 
@@ -39,7 +38,9 @@ public class Parser {
     }
 
     private void getNextToken() {
-        this.currentToken = this.tokenList.get(++currentTokenIndex);
+        currentTokenIndex++;
+        if (currentTokenIndex < tokenList.size())
+            this.currentToken = this.tokenList.get(currentTokenIndex);
     }
 
     private void getPreviousToken() {
@@ -70,41 +71,45 @@ public class Parser {
 
     private void handleKeyword(String keyword) throws Exception {
         switch (keyword) {
-            case "LET":
-                Node newNode = new Node("assign");
-                newNode.setLineNumber(this.currentLineNumber);
-                currentNode.addChild(newNode);
-                currentNode = newNode;
+            case "LET":                
+                Node assignNode = new Node("assign");
+                assignNode.setLineNumber(this.currentLineNumber);
+                currentNode.addChild(assignNode);
 
                 getNextToken();
-                String tokenName = currentToken.getName();
+                String tokenType = currentToken.getType();
                 String tokenValue = currentToken.getValue();
 
-                if (!tokenName.equals("identifier"))
+                if (!tokenType.equals("identifier"))
                     throw new Exception("Must assign to identifier.\n");
                 if (!idList.contains(tokenValue))
                     idList.add(tokenValue);
 
+                Node identifierNode = new Node(tokenValue);
+                assignNode.addChild(identifierNode);
+
                 getNextToken();
-                tokenName = currentToken.getName();
+                tokenType = currentToken.getType();
                 tokenValue = currentToken.getValue();
 
-                if (!tokenName.equals("operator") || !tokenValue.equals("="))
+                if (!tokenType.equals("operator") || !tokenValue.equals("="))
                     throw new Exception("Assignment must have equals sign.\n");
 
                 getNextToken();
-                handleExpression();   
-                
+                Node expressionNode = handleExpression();   
+                assignNode.addChild(expressionNode);
+
                 break;
             default:
                 break;
         }
     }
 
-    private void handleExpression() throws Exception {
-        currentNode.addChild(getExpressions());
+    private Node handleExpression() throws Exception {
+        Node expressionNode = getExpressions();
         if (this.parenthesesCount > 0)
             throw new Exception("Parentheses error.\n");
+        return expressionNode;
     }
 
     private enum ExpStates {S0, S1, S2, S3}
@@ -120,13 +125,12 @@ public class Parser {
         while (!automatonDone) {    
             switch (state) {
                 case S0:
-                    if (currentToken.getName().equals("identifier") || currentToken.getName().equals("literal")) {
+                    if (currentToken.getType().equals("identifier") || currentToken.getType().equals("literal")) {
                         mainNode.setType(currentToken.getValue());
-                        if (mainNode.hasSiblings()) {
+                        if (mainNode.hasSiblings())
                             mainNode = mainNode.getParent();
-                        }
                         state = ExpStates.S1;
-                    } else if (currentToken.getName().equals("separator") && currentToken.getValue().equals("(")) {
+                    } else if (currentToken.getType().equals("separator") && currentToken.getValue().equals("(")) {
                         this.parenthesesCount++;
                         tempNode = new Node();
                         mainNode.addChild(tempNode);
@@ -138,7 +142,7 @@ public class Parser {
                     break;
             
                 case S1:
-                    if (currentToken.getName().equals("operator")) {
+                    if (currentToken.getType().equals("operator")) {
                         tempNode = new Node(currentToken.getValue());
                         mainNode.splitParent(tempNode);
 
@@ -152,13 +156,13 @@ public class Parser {
                     break;
             
                 case S2:
-                    if (currentToken.getName().equals("identifier") || currentToken.getName().equals("literal")) {
+                    if (currentToken.getType().equals("identifier") || currentToken.getType().equals("literal")) {
                         mainNode.setType(currentToken.getValue());
                         if (mainNode.hasSiblings()) {
                             mainNode = mainNode.getParent();
                         }
                         state = ExpStates.S3;
-                    } else if (currentToken.getName().equals("separator") && currentToken.getValue().equals("(")) {
+                    } else if (currentToken.getType().equals("separator") && currentToken.getValue().equals("(")) {
                         this.parenthesesCount++;
                         tempNode = new Node();
                         mainNode.addChild(tempNode);
@@ -170,7 +174,7 @@ public class Parser {
                     break;
             
                 case S3:
-                    if (currentToken.getName().equals("operator")) {
+                    if (currentToken.getType().equals("operator")) {
                         tempNode = new Node(currentToken.getValue());
                         mainNode.splitParent(tempNode);
 
@@ -178,7 +182,7 @@ public class Parser {
                         tempNode.addChild(mainNode);
 
                         state = ExpStates.S2;
-                    } else if (currentToken.getName().equals("separator") && currentToken.getValue().equals(")")) {
+                    } else if (currentToken.getType().equals("separator") && currentToken.getValue().equals(")")) {
                         this.parenthesesCount--;
                         tempNode = mainNode.getParent();
                         if (!tempNode.hasType()) {
@@ -187,7 +191,7 @@ public class Parser {
                             mainNode = tempNode;
                         }
 
-                        if (this.parenthesesCount == 0) 
+                        if (this.parenthesesCount == 0)
                             state = ExpStates.S1;
                     } else
                         throw new Exception("Expected operator or closing parenthesis");
@@ -196,8 +200,15 @@ public class Parser {
                 default:
                     throw new Exception("Invalid state.");
             }   
-            getNextToken(); 
+            if (!automatonDone)
+                getNextToken(); 
         }   
         return mainNode.getRoot(); 
+    }
+
+    public static void main(String[] args) {
+        Parser parser = new Parser();
+        Node ast = parser.buildAST();
+        ast.printTree();
     }
 }

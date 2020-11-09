@@ -85,6 +85,8 @@ public class Node {
     }
 
     public boolean hasSiblings() {
+        if (isRoot()) 
+            return false;
         return this.parent.getChildren().size() > 1;
     }
 
