@@ -6,34 +6,34 @@ import java.util.Set;
  */
 public class Token {
 
-    private String name;
+    private String type;
     private String value;
 
-    private final Set<String> NAMES = Set.of("identifier", "keyword", "separator", "operator", "literal", "comment");
+    private final Set<String> TYPES = Set.of("identifier", "keyword", "separator", "operator", "literal", "comment");
 
     public static void main(String[] args) {
         Token token = new Token("operator", "Valor teste");
         System.out.println(token);
     }
 
-    public Token(String name, String value) {
-        setName(name);
+    public Token(String type, String value) {
+        setType(type);
         setValue(value);
     }
 
-    public void setName(String name) {
-        if (NAMES.contains(name))
-            this.name = name;
+    public void setType(String type) {
+        if (TYPES.contains(type))
+            this.type = type;
         else
-            System.out.println("Invalid name");
+            System.out.println("Invalid type");
     }
 
     public void setValue(String value) {
         this.value = value;
     }
 
-    public String getName() {
-        return this.name;
+    public String getType() {
+        return this.type;
     }
 
     public String getValue() {
@@ -41,6 +41,6 @@ public class Token {
     }
 
     public String toString() {
-        return String.format("<Token name=\"%s\" value=\"%s\">", this.name, this.value);
+        return String.format("<Token type=\"%s\" value=\"%s\">", this.type, this.value);
     }
 }

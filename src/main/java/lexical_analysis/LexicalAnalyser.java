@@ -19,81 +19,79 @@ public class LexicalAnalyser {
                                                        "LOG", "SQR", "INT", "RND", "READ", "DATA", "PRINT", "GOTO",
                                                        "GO", "TO", "IF", "THEN", "FOR", "STEP", "NEXT", "DIM", "DEF FN",
                                                        "GOSUB", "RETURN", "REM", "E");
-    private static final Set<String> separators = Set.of(" ", "(", ")", ".", ",");
+    private static final Set<String> separators = Set.of("(", ")", ",");
 
     private ArrayList<Token> tokenList = new ArrayList<Token>();
+    private String token = "";
 
     public LexicalAnalyser() { }
     public LexicalAnalyser(String filename) { this.filename = filename; }
 
-    private boolean isStringLiteral(String word) {
-        return word.matches("\".*\"");
+    private boolean isLiteral(String token) {
+        return token.matches("[0-9]+") || token.matches("[0-9]*\\.[0-9]+") || token.matches("\".*\"");
     }
 
-    private void buildToken(String word) {
-        if (operators.contains(word)) {
-            tokenList.add(new Token("operator", word));
-        } else if (keywords.contains(word)) {
-            tokenList.add(new Token("keyword", word));
-        } else if (separators.contains(word)) {
-            tokenList.add(new Token("separator", word));
-        } else if (word.matches("[0-9]+|[0-9]*\\.[0-9]+") || isStringLiteral(word)) {
-            tokenList.add(new Token("literal", word));
+    private String getTokenType(String token) {
+        if (operators.contains(token)) {
+            return "operator";
+        } else if (separators.contains(token)) {
+            return "separator";
+        } else if (keywords.contains(token)) {
+            return "keyword";
+        } else if (isLiteral(token)) {
+            return "literal";
         } else {
-            tokenList.add(new Token("identifier", word));
+            return "identifier";
         }
     }
 
-    private String[] separateOnSubString(String word, String subString) {
-        if (isStringLiteral(word)) {
-            return new String[]{ word };
-        } else if (subString.equals(" ")) {
-            return word.split(subString);
+    private void addToken(String token) {
+        if (!token.isBlank()) {
+            tokenList.add(new Token(getTokenType(token), token));
         }
-        return word.split(String.format("(?<=\\Q%s\\E)|(?=\\Q%s\\E)", subString, subString));
-    }
-
-    private ArrayList<String> separateStringLiterals(String line) { ////// Separa cadeias fixas
-
-        String[] splitOnQuotes = line.split("(?<=(?:[^\\\\]|^)\")|(?<!\\\\)(?=\")");
-        ArrayList<String> wordList = new ArrayList<String>();
-
-        for (int i = 0; i < splitOnQuotes.length; i++) {
-            if (splitOnQuotes[i].equals("\"")) {
-                wordList.add(String.format("\"%s\"", splitOnQuotes[i+1]));
-                i += 2;
-            } else {
-                wordList.add(splitOnQuotes[i]);
-            }
-        }
-
-        return wordList;
+        this.token = "";
     }
 
     private void buildTokens(String line) {
+        String currentChar;
 
-        ArrayList<String> wordList = separateStringLiterals(line);
-        
-        for (String separator : separators) {
-            ArrayList<String> tempList = new ArrayList<String>();
-            for (String word : wordList) {
-                for (String newWord : separateOnSubString(word, separator)) {
-                    tempList.add(newWord);
+        for (int i = 0; i < line.length(); i++) {
+            currentChar = String.valueOf(line.charAt(i));
+
+            if (currentChar.isBlank()) {
+                addToken(this.token);
+            } else if (operators.contains(currentChar)) {
+                addToken(token);
+                if (operators.contains(currentChar + line.charAt(i + 1))) {
+                    addToken(currentChar + line.charAt(i + 1));
+                    i = i + 1;
+                } else {
+                    addToken(currentChar);
                 }
-            }
-            wordList = tempList;
-        }
-        for (String operator : operators) {
-            ArrayList<String> tempList = new ArrayList<String>();
-            for (String word : wordList) {
-                for (String newWord : separateOnSubString(word, operator)) {
-                    tempList.add(newWord);
+            } else if (separators.contains(currentChar)) {
+                addToken(this.token);
+                addToken(currentChar);
+            } else if (currentChar.equals("\"")) {
+                addToken(this.token);
+                int j;
+                String stringLiteral = "\"";
+
+                for (j = i + 1; j < line.length(); j++) {
+                    currentChar = String.valueOf(line.charAt(j));
+                    stringLiteral = stringLiteral + currentChar;
+
+                    if (currentChar.equals("\"") && line.charAt(j - 1) != '\\') {
+                        System.out.println(stringLiteral);
+                        break;
+                    }
                 }
+                addToken(stringLiteral);
+                i = j;
+            } else {
+                this.token = this.token + currentChar;
+                if (i == line.length() - 1)
+                    addToken(this.token);
             }
-            wordList = tempList;
-        }
-        for (String word : wordList) {
-            buildToken(word);
         }
     }
 
