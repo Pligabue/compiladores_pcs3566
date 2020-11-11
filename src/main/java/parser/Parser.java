@@ -20,10 +20,11 @@ public class Parser {
 
     private Node currentNode = root;
     private Token currentToken;
+
     private int currentLineNumber;
     private int parenthesesCount = 0;
 
-    private ArrayList<String> idList = new ArrayList<String>();
+    private ArrayList<Symbol> symbolList = new ArrayList<Symbol>();
 
     public Parser() { setUp(); }
     public Parser(String filename) { 
@@ -41,6 +42,12 @@ public class Parser {
         currentTokenIndex++;
         if (currentTokenIndex < tokenList.size())
             this.currentToken = this.tokenList.get(currentTokenIndex);
+    }
+
+    private Token peekNextToken() {
+        if (currentTokenIndex + 1 < tokenList.size())
+            return this.tokenList.get(currentTokenIndex + 1);
+        return currentToken;
     }
 
     private void getPreviousToken() {
@@ -67,6 +74,14 @@ public class Parser {
         } catch (Exception e) {
             throw new Exception("Número da linha inválido.\n");
         }
+    }
+
+    private boolean listContainsSymbol(String name) {
+        for (Symbol symbol : symbolList) {
+            if (symbol.getName().equals(name))
+                return true;
+        }
+        return false;
     }
 
     private void handleKeyword(String keyword) throws Exception {
@@ -100,6 +115,7 @@ public class Parser {
                 assignNode.addChild(expressionNode);
 
                 break;
+            case 
             default:
                 break;
         }
@@ -204,6 +220,20 @@ public class Parser {
                 getNextToken(); 
         }   
         return mainNode.getRoot(); 
+    }
+
+    private Node handleIdentifier(boolean assignment) throws Exception {
+        Node id = new Node();
+        int dim = 1;
+        if (currentToken.getType().equals("identifier")) {
+            if (listContainsSymbol(currentToken.getValue()) {
+
+            } else if (assignment) {
+                symbolList.add(new Symbol)
+            }
+        } else {
+            throw new Exception("Must assign to variable.")
+        }
     }
 
     public static void main(String[] args) {

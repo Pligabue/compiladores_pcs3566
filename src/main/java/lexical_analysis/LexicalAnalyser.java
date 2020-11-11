@@ -19,7 +19,7 @@ public class LexicalAnalyser {
                                                        "LOG", "SQR", "INT", "RND", "READ", "DATA", "PRINT", "GOTO",
                                                        "GO", "TO", "IF", "THEN", "FOR", "STEP", "NEXT", "DIM", "DEF FN",
                                                        "GOSUB", "RETURN", "REM", "E");
-    private static final Set<String> separators = Set.of("(", ")", ",");
+    private static final Set<String> separators = Set.of("(", ")", ",", "[", "]");
 
     private ArrayList<Token> tokenList = new ArrayList<Token>();
     private String token = "";
@@ -81,7 +81,6 @@ public class LexicalAnalyser {
                     stringLiteral = stringLiteral + currentChar;
 
                     if (currentChar.equals("\"") && line.charAt(j - 1) != '\\') {
-                        System.out.println(stringLiteral);
                         break;
                     }
                 }
