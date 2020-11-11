@@ -1,0 +1,16 @@
+Analisador Léxico/
+Analisador Sintático/
+Gramática/
+
+src/main/java/*.py
+
+*.class
+
+compile.ps1
+
+sample_text.txt
+src/main/java/__pycache__/lexical_analyser.cpython-37.pyc
+src/main/java/__pycache__/node.cpython-37.pyc
+src/main/java/__pycache__/token.cpython-37.pyc
+src/main/java/lexical_analysis/__pycache__/token.cpython-37.pyc
+python/__pycache__
