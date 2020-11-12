@@ -16,7 +16,7 @@ class LexicalAnalyser:
         self.token = ""
 
     def is_literal(self, token) -> bool:
-        return bool(re.fullmatch(r'[0-9]+|[0-9]*\.[0-9]+|".*"', token))
+        return bool(re.fullmatch(r'[+-]?[0-9]+|[+-]?[0-9]*\.[0-9]+|".*"', token))
 
     def get_token_type(self, token):
         if token in self.OPERATORS:
@@ -83,6 +83,7 @@ class LexicalAnalyser:
             f.close()
         except IOError:
             print("File does no exist.\n")
+        
         return self.token_list
 
 if __name__ == "__main__":

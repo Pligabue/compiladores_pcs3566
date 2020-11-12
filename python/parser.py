@@ -51,7 +51,7 @@ class Parser:
             self.current_line_number = int(self.current_token.value)
             self.get_next_token()
         except:
-            raise Exception("Invalid line number.\n")
+            raise Exception(f'Invalid line number "{self.current_token.value}".\n')
 
     def handle_keyword(self, keyword):
 
@@ -103,101 +103,76 @@ class Parser:
         else:
             return
 
-    def handle_expression(self):
-        expression_node = self.get_expressions()
-        if self.parentheses_count > 0:
-            raise Exception("Parentheses error.\n")
-        return expression_node
+    def build_expression_node(self, operators, operands):
+        if len(operators) != len(operands)-1:
+            raise Exception(f"Wrong number of operands. Operands = {operands}, operators = {operators}")
+        if len(operators) <= 0:
+            return operands[0]
 
-    def get_expressions(self):
-
-        main_node = Node()
-        temp_node = main_node
-        automaton_done = False
-        state = 0
-
-        while not automaton_done:    
-            if state == 0:
-                if self.current_token.type == "identifier":
-                    main_node.type = self.current_token.value
-                    if main_node.has_siblings():
-                        main_node = main_node.parent
-                    state = 1
-                elif self.current_token.type == "literal":
-                    main_node.type = self.current_token.value
-                    if main_node.has_siblings():
-                        main_node = main_node.parent
-                    state = 1
-                elif self.current_token.type == "separator" and self.current_token.value == "(":
-                    self.parentheses_count += 1
-                    temp_node = Node()
-                    main_node.add_child(temp_node)
-                    main_node = temp_node
-                    state = 2
+        new_operators = []
+        new_operands = []
+        new_i = 0
+        for i, operator in enumerate(operators):
+            if operator.type == "*" or operator.type == "/":
+                operator_node = operator
+                left_node = operands[i]
+                right_node = operands[i+1]
+                operator_node.add_child(left_node)
+                operator_node.add_child(right_node)
+                if len(new_operands) <= new_i:
+                    new_operands.append(operator_node)
                 else:
-                    raise Exception("Must be assigned to something.\n")
-            
-            elif state == 1:
-                if self.current_token.type == "operator":
-                    temp_node = Node(self.current_token.value)
-                    main_node.split_parent(temp_node)
-
-                    main_node = Node()
-                    temp_node.add_child(main_node)
-
-                    state = 0
-                else:
-                    automaton_done = True
-            
-            elif state == 2:
-                if self.current_token.type == "identifier":
-                    main_node.type == self.current_token.value
-                    if main_node.has_siblings():
-                        main_node = main_node.parent
-                    state = 3
-                elif self.current_token.type == "literal":
-                    main_node.type == self.current_token.value
-                    if main_node.has_siblings():
-                        main_node = main_node.parent
-                    state = 3
-                elif self.current_token.type == "separator" and self.current_token.value == "(":
-                    self.parentheses_count += 1
-                    temp_node = Node()
-                    main_node.add_child(temp_node)
-                    main_node = temp_node
-
-                    state = 2
-                else:
-                    raise Exception("Must be assigned to something.\n")
-        
-            elif state == 3:
-                if self.current_token.type == "operator":
-                    temp_node = Node(self.current_token.value)
-                    main_node.split_parent(temp_node)
-
-                    main_node = Node()
-                    temp_node.add_child(main_node)
-
-                    state = 2
-                elif self.current_token.type == "separator" and self.current_token.value == ")":
-                    self.parentheses_count -= 1
-                    temp_node = main_node.parent
-                    if temp_node.type is not None:
-                        main_node.replace_parent_with_self()
-                    else:
-                        main_node = temp_node
-
-                    if self.parentheses_count == 0:
-                        state = 1
-                else:
-                    raise Exception("Expected operator or closing parenthesis")
+                    new_operands[new_i] = operator_node
+                operands[i+1] = operator_node
             else:
-                raise Exception("Invalid state.")
-              
-            if not automaton_done:
-                self.get_next_token() 
-          
-        return main_node.get_root()
+                new_operators.append(operator)
+                new_operands.append(operands[i])
+                new_i += 1
+                if operator == operators[-1]:
+                    new_operands.append(operands[i+1])
+            i += 1
+        
+        print(new_operators)
+        print(new_operands)
+
+        acc_node = new_operands[0]
+        for i, operator in enumerate(new_operators):
+            operator_node = operator
+            right_node = new_operands[i+1]
+            operator_node.add_child(acc_node)
+            operator_node.add_child(right_node)
+            acc_node = operator_node
+
+        return acc_node
+
+    def handle_expression(self):
+        operands = []
+        operators = []
+        
+        while True:
+            if self.current_token.type == "identifier":
+                id_node = self.handle_identifier(is_assignment=False)
+                operands.append(id_node)
+            elif self.current_token.type == "literal":
+                literal_node = Node(self.current_token.value)
+                operands.append(literal_node)
+                self.get_next_token()
+            elif self.current_token.type == "separator" and self.current_token.value == "(":
+                self.get_next_token()
+                subexpression_node = self.handle_expression()
+                operands.append(subexpression_node)
+            else:
+                break
+
+            if self.current_token.type == "operator":
+                operator_node = Node(self.current_token.value)
+                operators.append(operator_node)
+                self.get_next_token()
+            else:
+                if self.current_token.type == "separator" and self.current_token.value == ")":
+                    self.get_next_token()
+                break
+        return self.build_expression_node(operators, operands)
 
     def get_symbol(self, name):
         for symbol in self.symbol_list:
