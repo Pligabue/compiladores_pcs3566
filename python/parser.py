@@ -1,5 +1,14 @@
+from symbol import Symbol
+import symbol
 from lexical_analyser import LexicalAnalyser
 from node import Node
+
+def is_int(s):
+    try: 
+        int(s)
+        return True
+    except ValueError:
+        return False
 
 class Parser:
 
@@ -42,15 +51,10 @@ class Parser:
             self.current_line_number = int(self.current_token.value)
             self.get_next_token()
         except:
-            print("Número da linha inválido.\n")
-
-    def list_contains_symbol(self, name):
-        for symbol in self.symbol_list:
-            if symbol.name == name:
-                return True
-        return False
+            raise Exception("Invalid line number.\n")
 
     def handle_keyword(self, keyword):
+
         if keyword == "LET":                
             assign_node = Node("assign")
             assign_node.line_number = self.current_line_number
@@ -60,30 +64,46 @@ class Parser:
             token_type = self.current_token.type
             token_value = self.current_token.value
 
-            if token_type != "identifier":
-                raise Exception("Must assign to identifier.\n")
-            if self.list_contains_symbol(token_value):
-                self.symbol_list.add(token_value)
+            id_node = self.handle_identifier()
+            assign_node.add_child(id_node)
 
-            identifier_node = Node(token_value)
-            assign_node.add_child(identifier_node)
-
-            self.get_next_token()
             token_type = self.current_token.type
             token_value = self.current_token.value
 
+
             if token_type != "operator" or token_value != "=":
+                print(token_type)
+                print(token_value)
                 raise Exception("Assignment must have equals sign.\n")
 
             self.get_next_token()
-            expression_node = self.handleExpression()   
+            expression_node = self.handle_expression()   
             assign_node.add_child(expression_node)
 
+        elif keyword == "DIM":
+
+            self.get_next_token()
+            if self.current_token.type != "identifier":
+                raise Exception("Dimention must get an identifier.")
+            id_name = self.current_token.value
+            self.get_next_token()
+            dim = []
+            while self.current_token.type == "separator" and self.current_token.value == "[":
+                self.get_next_token()
+                if self.current_token.type == "literal" and is_int(self.current_token.value):
+                    dim.append(int(self.current_token.value))
+                else:
+                    raise Exception("Index must be integer.")
+                self.get_next_token()
+                if self.current_token.type != "separator" or self.current_token.value != "]":
+                    raise Exception("Must close brackets")
+                self.get_next_token()
+            self.symbol_list.append(Symbol(id_name, dim=dim))
+            
         else:
             return
 
-
-    def handleExpression(self):
+    def handle_expression(self):
         expression_node = self.get_expressions()
         if self.parentheses_count > 0:
             raise Exception("Parentheses error.\n")
@@ -179,17 +199,44 @@ class Parser:
           
         return main_node.get_root()
 
-    # private Node handleIdentifier(boolean assignment) raises Exception:
-    #     Node id = Node()
-    #     int dim = 1
-    #     if (self.current_token.type.equals("identifier")):
-    #         if (list_contains_symbol(self.current_token.value):
+    def get_symbol(self, name):
+        for symbol in self.symbol_list:
+            if symbol.name == name:
+                return symbol
+        return None
 
-    #         else if (assignment):
-    #             symbolList.add(Symbol)
-    
-    #     else:
-    #         raise Exception("Must assign to variable.")
+    def list_contains_symbol(self, name):
+        for symbol in self.symbol_list:
+            if symbol.name == name:
+                return True
+        return False
+
+    def handle_identifier(self, is_assignment=True):
+        id_node = Node()
+        if self.current_token.type == "identifier":
+            id_name = self.current_token.value
+            id_node.type = id_name
+
+            if not self.list_contains_symbol(id_name):
+                self.symbol_list.append(Symbol(id_name)) 
+
+            self.get_next_token() 
+            dim = 0
+            while self.current_token.type == "separator" and self.current_token.value == "[":
+                self.get_next_token()
+                dim += 1
+
+                expression_node = self.handle_expression()
+                id_node.add_child(expression_node)
+                if self.current_token.type == "separator" and self.current_token.value == "]":
+                    self.get_next_token()
+                else:
+                    raise Exception("Wrong index.")  
+            if self.get_symbol(id_name).num_of_dim() != dim:
+                raise Exception(f"Wrong dimensions. The variable {id_name} has {self.get_symbol(id_name).num_of_dim()} dimentions.")
+        else:
+            raise Exception("Must assign to variable.")
+        return id_node
 
 if __name__ == "__main__":
     ast = Parser().build_ast()
