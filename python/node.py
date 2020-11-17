@@ -135,9 +135,10 @@ class LiteralNode(Node):
 
 class OperatorNode(Node):
     
-    def __init__(self, operation) -> None:
+    def __init__(self, operation, type=None) -> None:
         super().__init__()
         self.operation = operation
+        self.type = None
 
 
 if __name__ == "__main__":

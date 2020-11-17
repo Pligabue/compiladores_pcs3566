@@ -70,6 +70,12 @@ class Parser:
             self.get_next_token()
             expression_node = self.handle_expression()   
             assign_node.add_child(expression_node)
+            assign_node.type = expression_node.type
+            if id_node.type is None:
+                id_node.type = expression_node.type
+            else:
+                if id_node.type != expression_node.type:
+                    raise Exception("Assigned and expression have different types.")
 
         elif keyword == "DIM":
 
@@ -95,6 +101,20 @@ class Parser:
         else:
             return
 
+    def get_operation_type(self, left_node, right_node):
+        types = left_node.type, right_node.type
+        if types[0] is None or types[1] is None:
+            raise Exception("Operands must have a type. Check if any variables are uninitialized.")
+
+        if types[0] == "int" or types[1] == "int":
+            return "int"
+        elif types[0] == "float" and types[1] == "float":
+            return "float"
+        elif types[0] == "string" and types[1] == "string":
+            return "string"
+        else:
+            raise Exception("Operands hava incompatible types.")
+
     def build_expression_node(self, operators, operands):
         if len(operators) != len(operands)-1:
             raise Exception(f"Wrong number of operands. Operands = {operands}, operators = {operators}")
@@ -111,7 +131,8 @@ class Parser:
                 right_node = operands[i+1]
                 operator_node.add_child(left_node)
                 operator_node.add_child(right_node)
-                if len(new_operands) <= new_i:
+                operator_node.type = self.get_operation_type(left_node, right_node)
+                if new_i >= len(new_operands):
                     new_operands.append(operator_node)
                 else:
                     new_operands[new_i] = operator_node
@@ -129,6 +150,7 @@ class Parser:
             right_node = new_operands[i+1]
             operator_node.add_child(acc_node)
             operator_node.add_child(right_node)
+            operator_node.type = self.get_operation_type(acc_node, right_node)
             acc_node = operator_node
 
         return acc_node
