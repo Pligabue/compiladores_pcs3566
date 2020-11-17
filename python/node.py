@@ -1,8 +1,9 @@
+import re
+
 
 class Node:
 
-    def __init__(self, type=None, line_number=None) -> None:
-        self.type = type
+    def __init__(self, line_number=None) -> None:
         self.parent = None
         self.line_number = line_number
         self.children = []
@@ -42,9 +43,6 @@ class Node:
             self.parent = grandparent
 
 
-    def has_type(self):
-        return self.type is not None
-
     def has_siblings(self):
         if self.is_root():
             return False
@@ -66,18 +64,81 @@ class Node:
             
         return current_node
 
-    def print_node(self, offset=2):
-        print(f"type={self.type}")
+    def node_type(self):
+        class_name = self.__class__.__name__
+        return None if class_name == "Node" else re.match(r"([a-zA-Z]+)Node", class_name).group(1).lower()
+
+    def print_node(self, padding="", last_child=True):
+
+        print(f"{padding}|-{self}")
         for child in self.children:
-            print(" " * offset, end="")
-            child.print_node(offset + 2)
+            if last_child:
+                child.print_node(padding+"  ", child is self.children[-1])
+            else:
+                child.print_node(padding+"| ", child is self.children[-1])
 
 
     def print_tree(self):
         self.get_root().print_node()
 
     def __repr__(self) -> str:
-        return f'<Node type={self.type}>'
+        attributes = ""
+        for attr, value in self.__dict__.items():
+            if attr in ["parent", "children", "line_number"]:
+                continue
+            elif attr == "dims":
+                if self.num_of_dims() > 0:
+                    attributes += f' dims="{self.num_of_dims()}"'
+            else:
+                attributes += f' {attr}="{value}"'
+        return f'{self.node_type()}{attributes}'
+
+class ProgramNode(Node):
+    pass
+
+class AssignNode(Node):
+    
+    def __init__(self, line_number=None, type=None) -> None:
+        super().__init__(line_number=line_number)
+        self.type = type      
+
+class VariableNode(Node):
+
+    def __init__(self, name, type=None, dims=None):
+        super().__init__()
+        self.name = name
+        self.type = type
+        if dims is not None:
+            self.dims = dims
+        else:
+            self.dims = []
+
+    def num_of_dims(self):
+        return len(self.dims)
+
+class LiteralNode(Node):
+
+    def __init__(self, value) -> None:
+        super().__init__()
+        self.value = value
+        self.set_type(value)
+
+    def set_type(self, value):  
+        if re.match(r"[0-9]+", value):
+            self.type = "int"  
+        elif re.match(r"[0-9]*\.[0-9]+", value):
+            self.type = "float"
+        elif re.match(r'".*"', value):
+            self.type = "string"
+        else:
+            raise Exception(f"Literal {value} has no type.")
+
+class OperatorNode(Node):
+    
+    def __init__(self, operation) -> None:
+        super().__init__()
+        self.operation = operation
+
 
 if __name__ == "__main__":
     main = Node("Aaron")
@@ -93,4 +154,5 @@ if __name__ == "__main__":
 
     child.split_parent(Node("George"))
 
+    main.add_child(Node("Heracles"))
     main.print_tree()
