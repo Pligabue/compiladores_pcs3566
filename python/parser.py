@@ -1,5 +1,5 @@
 from lexical_analyser import LexicalAnalyser
-from node import OperatorNode, ProgramNode, AssignNode, LiteralNode, VariableNode
+from node import ForNode, GoToNode, OperatorNode, ProgramNode, AssignNode, LiteralNode, SubRoutineNode, VariableNode
 
 from helpers import is_int
 
@@ -16,11 +16,16 @@ class Parser:
         self.current_node = self.root
         self.parentheses_count = 0
         self.current_line_number = 0
+        self.text_line = 1
         self.variable_list = []
+        self.scope_stack = [self.root]
+
+    def tokens_remaining(self):
+        return self.current_token_index < len(self.token_list)
 
     def get_next_token(self):
         self.current_token_index += 1
-        if (self.current_token_index < len(self.token_list)):
+        if self.tokens_remaining():
             self.current_token = self.token_list[self.current_token_index]
 
     def peek_next_token(self):
@@ -37,69 +42,140 @@ class Parser:
         while self.current_token_index < len(self.token_list):
             self.set_line_number()
             self.handle_keyword(self.current_token.value)
+            if self.tokens_remaining() and self.current_token.value != "\n":
+                raise Exception(f"Command must end with a new line. Ended with {self.current_token.value}.")
+            else:
+                self.get_next_token()
         return self.root
 
     def set_line_number(self):
-        try:
+        if is_int(self.current_token.value):
+            self.text_line += 1
             self.current_line_number = int(self.current_token.value)
             self.get_next_token()
-        except:
-            raise Exception(f'Invalid line number "{self.current_token.value}".\n')
+        else:
+            raise Exception(f'Invalid line number "{self.current_token.value}" on line {self.text_line}.\n')
 
     def handle_keyword(self, keyword):
 
-        if keyword == "LET":                
-            assign_node = AssignNode()
-            assign_node.line_number = self.current_line_number
-            self.current_node.add_child(assign_node)
-
-            self.get_next_token()
-            token_type = self.current_token.type
-            token_value = self.current_token.value
-
-            id_node = self.handle_identifier(being_assigned=True)
-            assign_node.add_child(id_node)
-
-            token_type = self.current_token.type
-            token_value = self.current_token.value
-
-
-            if token_type != "operator" or token_value != "=":
-                raise Exception("Assignment must have equals sign.\n")
-
-            self.get_next_token()
-            expression_node = self.handle_expression()   
-            assign_node.add_child(expression_node)
-            assign_node.type = expression_node.type
-            if id_node.type is None:
-                id_node.type = expression_node.type
-            else:
-                if id_node.type != expression_node.type:
-                    raise Exception("Assigned and expression have different types.")
-
+        if keyword == "LET":
+            self.LET()
         elif keyword == "DIM":
-
-            self.get_next_token()
-            if self.current_token.type != "identifier":
-                raise Exception("Dimention must get an identifier.")
-            id_name = self.current_token.value
-            self.get_next_token()
-            dims = []
-            while self.current_token.type == "separator" and self.current_token.value == "[":
-                self.get_next_token()
-                if self.current_token.type == "literal" and is_int(self.current_token.value):
-                    dims.append(int(self.current_token.value))
-                else:
-                    raise Exception("Index must be integer.")
-                self.get_next_token()
-                if self.current_token.type != "separator" or self.current_token.value != "]":
-                    raise Exception("Must close brackets")
-                self.get_next_token()
-                
-            self.variable_list.append(VariableNode(id_name, dims=dims))
-            
+            self.DIM()
+        elif keyword == "GOTO":
+            self.GOTO()
+        elif keyword == "FOR":
+            self.FOR()
+        elif keyword == "END":
+            self.END()
+        elif self.current_token.type == "identifier":
+            self.LET(with_keyword=False)
         else:
-            return
+            raise Exception(f"Invalid command at line {self.text_line}.")
+
+    def LET(self, with_keyword=True):                
+        assign_node = AssignNode()
+        assign_node.line_number = self.current_line_number
+        self.current_node.add_child(assign_node)
+
+        if with_keyword:
+            self.get_next_token()
+        token_type = self.current_token.type
+        token_value = self.current_token.value
+
+        id_node = self.handle_identifier(being_assigned=True)
+        assign_node.add_child(id_node)
+
+        token_type = self.current_token.type
+        token_value = self.current_token.value
+
+
+        if token_type != "operator" or token_value != "=":
+            raise Exception("Assignment must have equals sign.\n")
+
+        self.get_next_token()
+        expression_node = self.handle_expression()   
+        assign_node.add_child(expression_node)
+
+        assign_node.type = expression_node.type
+        if id_node.type is None:
+            id_node.type = expression_node.type
+        elif id_node.type != expression_node.type:
+            raise Exception("Assigned and expression have different types.")
+
+            
+    def DIM(self):
+        self.get_next_token()
+
+        if self.current_token.type != "identifier":
+            raise Exception("Dimention must get an identifier.")
+        id_name = self.current_token.value
+
+        self.get_next_token()
+        dims = []
+        while self.current_token.type == "separator" and self.current_token.value == "[":
+            self.get_next_token()
+            if self.current_token.type == "literal" and is_int(self.current_token.value):
+                dims.append(int(self.current_token.value))
+            else:
+                raise Exception("Index must be integer.")
+            self.get_next_token()
+            if self.current_token.type != "separator" or self.current_token.value != "]":
+                raise Exception("Must close brackets")
+            self.get_next_token()
+
+        self.variable_list.append(VariableNode(id_name, dims=dims))
+
+    def GOTO(self):
+        goto_node = GoToNode()
+        goto_node.line_number = self.current_line_number
+        self.current_node.add_child(goto_node)
+
+        self.get_next_token()
+        if self.current_token.type == "literal" and is_int(self.current_token.value):
+            goto_node.add_child(LiteralNode(self.current_token.value))
+            self.get_next_token()
+        else:
+            raise Exception(f"GOTO command must have an integer as argument. Received {self.current_token.value}")
+
+    def FOR(self):
+        for_node = ForNode()
+        for_node.line_number = self.current_line_number
+        self.current_node.add_child(for_node)
+
+        self.get_next_token()
+        self.current_node = for_node
+        self.LET(with_keyword=False)
+
+        if self.current_token.type != "keyword" or self.current_token.value != "TO":
+            raise Exception(f"FOR loop requires a final value, indicated by the TO keyword. Received {self.current_token.value}.")
+        
+        self.get_next_token()
+        limit_node = self.handle_expression()
+        for_node.add_child(limit_node)
+
+        if self.current_token.type == "keyword" and self.current_token.value == "STEP":
+            self.get_next_token()
+            step_node = self.handle_expression()
+        elif self.current_token.type == "separator" and self.current_token.value == "\n":
+            step_node = LiteralNode("1")
+        else:
+            raise Exception(f"FOR loop must end with STEP or a new line. Received {self.current_token.value}")
+
+        for_node.add_child(step_node)
+
+        subroutine_node = SubRoutineNode()
+        for_node.add_child(subroutine_node)
+        self.scope_stack.append(subroutine_node)
+        self.current_node = subroutine_node
+
+    def END(self):
+        if len(self.scope_stack) <= 1:
+            raise Exception(f"END keyword cannot be used at the global scope.")
+        else:
+            self.scope_stack.pop()
+            self.current_node = self.scope_stack[-1]
+        self.get_next_token()
 
     def get_operation_type(self, left_node, right_node):
         types = left_node.type, right_node.type
@@ -170,6 +246,7 @@ class Parser:
             elif self.current_token.type == "separator" and self.current_token.value == "(":
                 self.get_next_token()
                 subexpression_node = self.handle_expression()
+                self.get_next_token()
                 operands.append(subexpression_node)
             else:
                 break
@@ -178,10 +255,10 @@ class Parser:
                 operator_node = OperatorNode(self.current_token.value)
                 operators.append(operator_node)
                 self.get_next_token()
-            else:
-                if self.current_token.type == "separator" and self.current_token.value == ")":
-                    self.get_next_token()
+            elif self.current_token.type == "separator" or self.current_token.type == "keyword":
                 break
+            else:
+                raise Exception(f"Expressions must have either operators or separators. Received {self.current_token.value}")
         return self.build_expression_node(operators, operands)
 
     def get_symbol(self, name):

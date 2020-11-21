@@ -100,7 +100,10 @@ class AssignNode(Node):
     
     def __init__(self, line_number=None, type=None) -> None:
         super().__init__(line_number=line_number)
-        self.type = type      
+        self.type = type  
+
+class GoToNode(Node):
+    pass
 
 class VariableNode(Node):
 
@@ -139,6 +142,12 @@ class OperatorNode(Node):
         super().__init__()
         self.operation = operation
         self.type = None
+
+class ForNode(Node):
+    pass
+
+class SubRoutineNode(Node):
+    pass
 
 
 if __name__ == "__main__":

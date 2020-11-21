@@ -8,7 +8,7 @@ class LexicalAnalyser:
                 "LOG", "SQR", "INT", "RND", "READ", "DATA", "PRINT", "GOTO",
                 "GO", "TO", "IF", "THEN", "FOR", "STEP", "NEXT", "DIM", "DEF FN",
                 "GOSUB", "RETURN", "REM", "E"}
-    SEPARATORS = {"(", ")", ",", "[", "]"}
+    SEPARATORS = {"(", ")", ",", "[", "]", "\n"}
 
     def __init__(self, filename="./sample_text.txt") -> None:
         self.token_list = []
@@ -30,7 +30,7 @@ class LexicalAnalyser:
         return "identifier"
 
     def add_token(self, token):
-        if token.strip():
+        if token.strip() or token == "\n":
             token_type = self.get_token_type(token)
             new_token = Token(token_type, token)
             self.token_list.append(new_token)
@@ -43,6 +43,8 @@ class LexicalAnalyser:
         for i, char in enum_line:
             if not char.strip():
                 self.add_token(self.token)
+                if char == "\n":
+                    self.add_token(char)
             elif char in self.OPERATORS:
                 self.add_token(self.token)
                 current_and_next = char + line[i+1]
