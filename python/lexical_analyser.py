@@ -1,9 +1,10 @@
 import re
 from token import Token
+from typing import NewType
 
 class LexicalAnalyser:
 
-    OPERATORS = {"+", "-", "*", "/", ">=", ">", "<>", "<", "<=", "="}
+    OPERATORS = {"+", "-", "*", "/", ">=", ">", "<>", "<", "<=", "=", "=="}
     KEYWORDS = {"END", "LET", "FN", "SIN", "COS", "TAN", "ATN", "EXP", "ABS",
                 "LOG", "SQR", "INT", "RND", "READ", "DATA", "PRINT", "GOTO",
                 "GO", "TO", "IF", "THEN", "FOR", "STEP", "NEXT", "DIM", "DEF FN",
@@ -50,7 +51,7 @@ class LexicalAnalyser:
                 current_and_next = char + line[i+1]
                 if current_and_next in self.OPERATORS:
                     self.add_token(current_and_next)
-                    next(line, None)
+                    next(enum_line, None)
                 else:
                     self.add_token(char)
             elif char in self.SEPARATORS:

@@ -146,6 +146,9 @@ class OperatorNode(Node):
 class ForNode(Node):
     pass
 
+class IfNode(Node):
+    pass
+
 class SubRoutineNode(Node):
     pass
 

@@ -1,12 +1,10 @@
 from lexical_analyser import LexicalAnalyser
-from node import ForNode, GoToNode, OperatorNode, ProgramNode, AssignNode, LiteralNode, SubRoutineNode, VariableNode
+from node import ForNode, GoToNode, IfNode, OperatorNode, ProgramNode, AssignNode, LiteralNode, SubRoutineNode, VariableNode
 
 from helpers import is_int
 
 class Parser:
 
-    TYPES = {"program", "assign", "read", "data", "print", "goto", "if", "for", 
-             "next", "dim", "def", "gosub", "return", "remark", "+", "-", "*", "/"}
 
     def __init__(self, filename="sample_text.txt") -> None:
         self.current_token_index = 0
@@ -64,6 +62,8 @@ class Parser:
             self.DIM()
         elif keyword == "GOTO":
             self.GOTO()
+        elif keyword == "IF":
+            self.IF()
         elif keyword == "FOR":
             self.FOR()
         elif keyword == "END":
@@ -88,7 +88,6 @@ class Parser:
 
         token_type = self.current_token.type
         token_value = self.current_token.value
-
 
         if token_type != "operator" or token_value != "=":
             raise Exception("Assignment must have equals sign.\n")
@@ -166,6 +165,35 @@ class Parser:
 
         subroutine_node = SubRoutineNode()
         for_node.add_child(subroutine_node)
+        self.scope_stack.append(subroutine_node)
+        self.current_node = subroutine_node
+
+    def IF(self):
+        if_node = IfNode()
+        if_node.line_number = self.current_line_number
+        self.current_node.add_child(if_node)
+
+        self.get_next_token()
+        left_node = self.handle_expression()
+
+        if self.current_token.type == "operator" and self.current_token.value in ["<", "<>", ">", "<=", ">=", "=="]:
+            comparator_node = OperatorNode(self.current_token.value)
+        else:
+            raise Exception(f"Expected operator. Received {self.current_token.value}.")
+
+        self.get_next_token()
+        right_node = self.handle_expression()
+
+        comparator_node.add_child(left_node)
+        comparator_node.add_child(right_node)
+        comparator_node.type = self.get_operation_type(left_node, right_node)
+        if_node.add_child(comparator_node)
+
+        if self.current_token.type == "keyword" and self.current_token.value == "THEN":
+            self.get_next_token()
+
+        subroutine_node = SubRoutineNode()
+        if_node.add_child(subroutine_node)
         self.scope_stack.append(subroutine_node)
         self.current_node = subroutine_node
 
@@ -252,9 +280,12 @@ class Parser:
                 break
 
             if self.current_token.type == "operator":
-                operator_node = OperatorNode(self.current_token.value)
-                operators.append(operator_node)
-                self.get_next_token()
+                if self.current_token.value in ["*", "/", "+", "-"]:
+                    operator_node = OperatorNode(self.current_token.value)
+                    operators.append(operator_node)
+                    self.get_next_token()
+                else:
+                    break
             elif self.current_token.type == "separator" or self.current_token.type == "keyword":
                 break
             else:
