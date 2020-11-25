@@ -168,6 +168,8 @@ class SubRoutineNode(Node):
         super().__init__(line_number=line_number)
         self.variable_list = []
 
+class PrintNode(Node):
+    pass
 
 if __name__ == "__main__":
     main = Node("Aaron")

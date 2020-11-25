@@ -1,5 +1,5 @@
 from lexical_analyser import LexicalAnalyser
-from node import ForNode, GoToNode, IfNode, OperatorNode, ProgramNode, AssignNode, LiteralNode, SubRoutineNode, VariableNode
+from node import ForNode, GoToNode, IfNode, OperatorNode, PrintNode, ProgramNode, AssignNode, LiteralNode, SubRoutineNode, VariableNode
 
 from helpers import is_int
 
@@ -67,6 +67,8 @@ class SyntaxAnalyser:
             self.FOR()
         elif keyword == "END":
             self.END()
+        elif keyword == "PRINT":
+            self.PRINT()
         elif self.current_token.type == "identifier":
             self.LET(with_keyword=False)
         else:
@@ -225,6 +227,17 @@ class SyntaxAnalyser:
             self.scope_stack.pop()
             self.current_node = self.scope_stack[-1]
         self.get_next_token()
+
+    def PRINT(self):
+        print_node = PrintNode()
+        self.current_node.add_child(print_node)
+
+        self.get_next_token()
+        if self.current_token.type != "identifier":
+            raise Exception(f"Can only print variables. Received {self.current_token.value}")
+
+        id_node = self.handle_identifier()
+        print_node.add_child(id_node)
 
     def get_operation_type(self, left_node, right_node):
         types = left_node.type, right_node.type

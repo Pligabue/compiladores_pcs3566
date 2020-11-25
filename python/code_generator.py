@@ -26,7 +26,7 @@ class CodeGenerator:
         self.ast.print_tree()
 
         f = open(f"{self.filename[:-4]}.s", "w")
-        f.write("\n".join(self.program_lines))
+        f.write("\n".join(self.program_lines) + "\n")
         f.close()
 
     def set_scope_variables_address(self, routine_node):
@@ -39,6 +39,8 @@ class CodeGenerator:
     def generate_code(self, node):
         if node.node_type() == "assign":
             self.generate_assign(node)
+        elif node.node_type() == "print":
+            self.generate_print(node)
         for child_node in node.children:
             self.generate_code(child_node)
 
@@ -75,12 +77,19 @@ class CodeGenerator:
             if expression_node.operation == "+":
                 operation = "addl"
             elif expression_node.operation == "*":
-                operation = "imull"
+                operation = "imul"
             else:
                 raise Exception(f"Operator {expression_node.operation} doesn't exist.")
             self.program_lines.append(f"\t{operation}\t%edx,\t%eax")
             self.program_lines.append(f"\tpushl\t%eax")
         pass
+
+    def generate_print(self, print_node):
+        variable_node = print_node.children[0]
+        self.program_lines.append(f"\tmovl\t{variable_node.address}(%esp),\t%eax")
+        self.program_lines.append(f"\tmovl\t%eax,\t4(%esp)")
+        self.program_lines.append(f"\tmovl\t$LC0,\t(%esp)")
+        self.program_lines.append(f"\tcall\t_printf")
 
     def build_overhead(self):
         overhead = f"""\t.file	"{self.filename}.c"
