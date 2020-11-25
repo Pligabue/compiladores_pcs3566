@@ -87,6 +87,9 @@ class LexicalAnalyser:
         except IOError:
             print("File does no exist.\n")
         
+        if self.token_list[-1].type != "separator":
+            self.token_list.append(Token("separator", "\n"))
+            
         return self.token_list
 
 if __name__ == "__main__":

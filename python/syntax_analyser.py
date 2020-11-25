@@ -3,7 +3,7 @@ from node import ForNode, GoToNode, IfNode, OperatorNode, ProgramNode, AssignNod
 
 from helpers import is_int
 
-class Parser:
+class SyntaxAnalyser:
 
 
     def __init__(self, filename="sample_text.txt") -> None:
@@ -15,7 +15,6 @@ class Parser:
         self.parentheses_count = 0
         self.current_line_number = 0
         self.text_line = 1
-        self.variable_list = []
         self.scope_stack = [self.root]
 
     def tokens_remaining(self):
@@ -123,7 +122,7 @@ class Parser:
                 raise Exception("Must close brackets")
             self.get_next_token()
 
-        self.variable_list.append(VariableNode(id_name, dims=dims))
+        self.current_node.variable_list.append(VariableNode(id_name, dims=dims))
 
     def GOTO(self):
         goto_node = GoToNode()
@@ -143,8 +142,30 @@ class Parser:
         self.current_node.add_child(for_node)
 
         self.get_next_token()
-        self.current_node = for_node
-        self.LET(with_keyword=False)
+        assign_node = AssignNode()
+        for_node.add_child(assign_node)
+
+        token_type = self.current_token.type
+        token_value = self.current_token.value
+
+        id_node = self.handle_identifier(being_assigned=True)
+        assign_node.add_child(id_node)
+
+        token_type = self.current_token.type
+        token_value = self.current_token.value
+
+        if token_type != "operator" or token_value != "=":
+            raise Exception("Assignment must have equals sign.\n")
+
+        self.get_next_token()
+        expression_node = self.handle_expression()   
+        assign_node.add_child(expression_node)
+
+        assign_node.type = expression_node.type
+        if id_node.type is None:
+            id_node.type = expression_node.type
+        elif id_node.type != expression_node.type:
+            raise Exception("Assigned and expression have different types.")
 
         if self.current_token.type != "keyword" or self.current_token.value != "TO":
             raise Exception(f"FOR loop requires a final value, indicated by the TO keyword. Received {self.current_token.value}.")
@@ -293,15 +314,16 @@ class Parser:
         return self.build_expression_node(operators, operands)
 
     def get_symbol(self, name):
-        for symbol in self.variable_list:
+        for symbol in self.current_node.variable_list:
             if symbol.name == name:
                 return symbol
         return None
 
     def get_variable_by_name(self, variable_name):
-        for variable_node in self.variable_list:
-            if variable_node.name == variable_name:
-                return variable_node
+        for scope in self.scope_stack[::-1]:
+            for variable_node in scope.variable_list:
+                if variable_node.name == variable_name:
+                    return variable_node
         return None
 
     def list_contains_symbol(self, variable_name):
@@ -315,7 +337,7 @@ class Parser:
             if id_node is None:
                 if being_assigned:
                     id_node = VariableNode(self.current_token.value, dims=[])
-                    self.variable_list.append(id_node)
+                    self.current_node.variable_list.append(id_node)
                 else:
                     raise Exception(f"Variable {self.current_token.value} is not initialized.")
 
@@ -340,5 +362,5 @@ class Parser:
         return id_node
 
 if __name__ == "__main__":
-    ast = Parser().build_ast()
+    ast = SyntaxAnalyser().build_ast()
     ast.print_tree()

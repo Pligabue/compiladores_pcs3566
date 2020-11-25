@@ -89,12 +89,18 @@ class Node:
             elif attr == "dims":
                 if self.num_of_dims() > 0:
                     attributes += f' dims="{self.num_of_dims()}"'
+            elif attr == "variable_list":
+                attributes += f' variable_list={self.variable_list}'
             else:
                 attributes += f' {attr}="{value}"'
         return f'{self.node_type()}{attributes}'
 
 class ProgramNode(Node):
-    pass
+    
+    def __init__(self, line_number=None):
+        super().__init__(line_number=line_number)
+        self.variable_list = []
+    
 
 class AssignNode(Node):
     
@@ -107,10 +113,11 @@ class GoToNode(Node):
 
 class VariableNode(Node):
 
-    def __init__(self, name, type=None, dims=None):
+    def __init__(self, name, type=None, dims=None, address=0):
         super().__init__()
         self.name = name
         self.type = type
+        self.address = address
         if dims is not None:
             self.dims = dims
         else:
@@ -118,6 +125,12 @@ class VariableNode(Node):
 
     def num_of_dims(self):
         return len(self.dims)
+
+    def num_of_items(self):
+        items = 1
+        for dim in self.dims:
+            items = items * dim
+        return items
 
 class LiteralNode(Node):
 
@@ -150,7 +163,10 @@ class IfNode(Node):
     pass
 
 class SubRoutineNode(Node):
-    pass
+    
+    def __init__(self, line_number=None):
+        super().__init__(line_number=line_number)
+        self.variable_list = []
 
 
 if __name__ == "__main__":
