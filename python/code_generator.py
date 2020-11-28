@@ -23,7 +23,8 @@ class CodeGenerator:
 
         self.build_overhead()
 
-        self.generate_code(program_node)
+        for child_node in program_node.children:
+            self.generate_code(child_node)
 
         self.build_tail()
 
@@ -45,8 +46,8 @@ class CodeGenerator:
             self.generate_assign(node)
         elif node.node_type() in ["print", "println"]:
             self.generate_print(node)
-        for child_node in node.children:
-            self.generate_code(child_node)
+        elif node.node_type() == "for":
+            self.generate_for(node)
 
     def generate_assign(self, node):
         variable_node = node.children[0]
@@ -70,6 +71,25 @@ class CodeGenerator:
             self.program_lines.append(f"\tpopl\t%eax")
             self.program_lines.append(f"\tmovl\t%eax,\t{variable_node.address+self.stack_base}(%ebp)")
 
+    def generate_for(self, for_node):
+        assign_node = for_node.children[0]
+        variable_node = assign_node.children[0]
+        limit_node = for_node.children[1]
+        step_node = for_node.children[2]
+        subroutine_node = for_node.children[3]
+
+        self.generate_assign(assign_node)
+        self.program_lines.append(f"\tjmp\tFOR_{for_node.line_number}_END")
+        self.program_lines.append(f"FOR_{for_node.line_number}_START:")
+
+        for child_node in subroutine_node.children:
+            self.generate_code(child_node)
+
+        self.program_lines.append(f"\taddl\t${step_node.value},\t{variable_node.address+self.stack_base}(%ebp)")
+        self.program_lines.append(f"FOR_{for_node.line_number}_END:")
+        self.program_lines.append(f"\tcmpl\t${limit_node.value},\t{variable_node.address+self.stack_base}(%ebp)")
+        self.program_lines.append(f"\tjle\tFOR_{for_node.line_number}_START")
+
     def generate_expression(self, expression_node):
         if expression_node.node_type() == "literal":
             self.program_lines.append(f"\tpushl\t${expression_node.value}")
@@ -88,7 +108,7 @@ class CodeGenerator:
                     offset = offset * dim
                 self.program_lines.append(f"\tpushl\t{expression_node.address+self.stack_base}(%ebp, %edx, 4)")
             else:
-                self.program_lines.append(f"\tpushl\t{expression_node.address+self.stack_base}(%esp)")
+                self.program_lines.append(f"\tpushl\t{expression_node.address+self.stack_base}(%ebp)")
         elif expression_node.node_type() == "operator":
             left_node = expression_node.children[0]
             right_node = expression_node.children[1]
