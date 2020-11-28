@@ -126,7 +126,7 @@ class SyntaxAnalyser:
                 raise Exception("Must close brackets")
             self.get_next_token()
 
-        self.current_node.variable_list.append(VariableNode(id_name, dims=dims))
+        self.current_node.variable_list.append(VariableNode(id_name, dims=dims, scope=self.scope_stack[-1]))
 
     def GOTO(self):
         goto_node = GoToNode()
@@ -167,7 +167,7 @@ class SyntaxAnalyser:
 
         assign_node.type = expression_node.type
         if id_node.type is None:
-            id_node.type = expression_node.type
+            self.set_variable_type(id_node.name, expression_node.type)
         elif id_node.type != expression_node.type:
             raise Exception("Assigned and expression have different types.")
 
@@ -335,10 +335,11 @@ class SyntaxAnalyser:
         return self.build_expression_node(operators, operands)
 
     def set_variable_type(self, variable_name, type):
+        found = False
         for scope in self.scope_stack[::-1]:
             for variable_node in scope.variable_list:
                 if variable_node.name == variable_name:
-                    variable_node.type = type
+                    scope.set_type(variable_name, type)
                     return
 
     def get_variable_by_name(self, variable_name):
@@ -358,7 +359,7 @@ class SyntaxAnalyser:
             id_node = self.get_variable_by_name(self.current_token.value)
             if id_node is None:
                 if being_assigned:
-                    id_node = VariableNode(self.current_token.value, dims=[])
+                    id_node = VariableNode(self.current_token.value, dims=[], scope=self.scope_stack[-1])
                     self.current_node.variable_list.append(id_node)
                 else:
                     raise Exception(f"Variable {self.current_token.value} is not initialized.")

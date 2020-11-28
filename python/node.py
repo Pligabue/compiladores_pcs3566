@@ -89,7 +89,7 @@ class Node:
     def __repr__(self) -> str:
         attributes = ""
         for attr, value in self.__dict__.items():
-            if attr in ["parent", "children", "line_number"]:
+            if attr in ["parent", "children", "line_number", "scope"]:
                 continue
             elif attr == "dims":
                 if self.num_of_dims() > 0:
@@ -107,10 +107,24 @@ class ProgramNode(Node):
         self.variable_list = []
         
     def set_address(self, name, address):
-        all_children = self.get_root().get_all_children()
-        all_variables = [node for node in all_children if node.node_type() == "variable" and node.name == name]
+        all_children = self.get_all_children()
+        all_variables = [node for node in all_children if node.node_type() == "variable" and 
+                                                          node.name == name and
+                                                          node.scope == self]
         for variable in all_variables:
             variable.address = address
+        for variable in [var for var in self.variable_list if var.name == name]:
+            variable.address = address
+
+    def set_type(self, name, type):
+        all_children = self.get_all_children()
+        all_variables = [node for node in all_children if node.node_type() == "variable" and 
+                                                          node.name == name and
+                                                          node.scope == self]
+        for variable in all_variables:
+            variable.type = type
+        for variable in self.variable_list:
+            variable.type = type
     
 
 class AssignNode(Node):
@@ -124,11 +138,12 @@ class GoToNode(Node):
 
 class VariableNode(Node):
 
-    def __init__(self, name, type=None, dims=None, address=0):
+    def __init__(self, name, type=None, dims=None, address=0, scope=None):
         super().__init__()
         self.name = name
         self.type = type
         self.address = address
+        self.scope = scope
         if dims is not None:
             self.dims = dims
         else:
@@ -147,6 +162,8 @@ class VariableNode(Node):
         new_node = self.__class__(self.name)
         new_node.type = self.type
         new_node.dims = [dim for dim in self.dims]
+        new_node.address = self.address
+        new_node.scope = self.scope
         new_node.children = []
 
         return new_node
@@ -181,11 +198,8 @@ class ForNode(Node):
 class IfNode(Node):
     pass
 
-class SubRoutineNode(Node):
-    
-    def __init__(self, line_number=None):
-        super().__init__(line_number=line_number)
-        self.variable_list = []
+class SubRoutineNode(ProgramNode):
+    pass
 
 class PrintNode(Node):
     pass

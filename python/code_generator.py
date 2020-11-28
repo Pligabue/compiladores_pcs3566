@@ -5,9 +5,7 @@ class CodeGenerator:
     def __init__(self, filename="./sample_text.txt") -> None:
         self.filename = filename
         self.program_lines = []
-        self.base_address = 16 
-        self.relative_address = self.base_address
-        self.stack_base = 0
+        self.relative_address = 0
         self.setup()
     
     def setup(self):
@@ -19,9 +17,10 @@ class CodeGenerator:
             raise Exception(f"Root node must be a program node.")
 
         program_node = self.ast
-        self.set_scope_variables_address(program_node)
 
         self.build_overhead()
+
+        self.set_scope_variables_address(program_node)
 
         for child_node in program_node.children:
             self.generate_code(child_node)
@@ -35,12 +34,13 @@ class CodeGenerator:
         f.close()
 
     def set_scope_variables_address(self, routine_node):
+        prev_relative_address = self.relative_address
         for variable_node in routine_node.variable_list:
-            routine_node.set_address(variable_node.name, self.relative_address)
             if variable_node.type == "int":
                 self.relative_address += 4 * variable_node.num_of_items()
-        self.stack_base = -self.stack_base
-
+            routine_node.set_address(variable_node.name, self.relative_address)
+        self.program_lines.append(f"\tsubl\t${self.relative_address-prev_relative_address},\t%esp")
+        
     def generate_code(self, node):
         if node.node_type() == "assign":
             self.generate_assign(node)
@@ -66,10 +66,10 @@ class CodeGenerator:
                 self.program_lines.append(f"\taddl\t%eax,\t%edx")
                 offset = offset * dim
             self.program_lines.append(f"\tpopl\t%eax")
-            self.program_lines.append(f"\tmovl\t%eax,\t{variable_node.address+self.stack_base}(%ebp, %edx, 4)")
+            self.program_lines.append(f"\tmovl\t%eax,\t-{variable_node.address}(%ebp, %edx, 4)")
         else:
             self.program_lines.append(f"\tpopl\t%eax")
-            self.program_lines.append(f"\tmovl\t%eax,\t{variable_node.address+self.stack_base}(%ebp)")
+            self.program_lines.append(f"\tmovl\t%eax,\t-{variable_node.address}(%ebp)")
 
     def generate_for(self, for_node):
         assign_node = for_node.children[0]
@@ -81,13 +81,14 @@ class CodeGenerator:
         self.generate_assign(assign_node)
         self.program_lines.append(f"\tjmp\tFOR_{for_node.line_number}_END")
         self.program_lines.append(f"FOR_{for_node.line_number}_START:")
-
+        
+        self.set_scope_variables_address(subroutine_node)
         for child_node in subroutine_node.children:
             self.generate_code(child_node)
 
-        self.program_lines.append(f"\taddl\t${step_node.value},\t{variable_node.address+self.stack_base}(%ebp)")
+        self.program_lines.append(f"\taddl\t${step_node.value},\t-{variable_node.address}(%ebp)")
         self.program_lines.append(f"FOR_{for_node.line_number}_END:")
-        self.program_lines.append(f"\tcmpl\t${limit_node.value},\t{variable_node.address+self.stack_base}(%ebp)")
+        self.program_lines.append(f"\tcmpl\t${limit_node.value},\t-{variable_node.address}(%ebp)")
         self.program_lines.append(f"\tjle\tFOR_{for_node.line_number}_START")
 
     def generate_expression(self, expression_node):
@@ -106,9 +107,9 @@ class CodeGenerator:
                     self.program_lines.append(f"\timul\t${offset},\t%eax")
                     self.program_lines.append(f"\taddl\t%eax,\t%edx")
                     offset = offset * dim
-                self.program_lines.append(f"\tpushl\t{expression_node.address+self.stack_base}(%ebp, %edx, 4)")
+                self.program_lines.append(f"\tpushl\t-{expression_node.address}(%ebp, %edx, 4)")
             else:
-                self.program_lines.append(f"\tpushl\t{expression_node.address+self.stack_base}(%ebp)")
+                self.program_lines.append(f"\tpushl\t-{expression_node.address}(%ebp)")
         elif expression_node.node_type() == "operator":
             left_node = expression_node.children[0]
             right_node = expression_node.children[1]
@@ -129,6 +130,7 @@ class CodeGenerator:
 
     def generate_print(self, print_node):
         print_type = print_node.node_type()
+        
         if print_type == "print":
             str_addr = "$LC0"
             variable_node = print_node.children[0]
@@ -138,7 +140,10 @@ class CodeGenerator:
                 variable_node = print_node.children[0]
             else:
                 str_addr = "$LC2"
-                variable_node = print_node.children[0]
+                self.program_lines.append(f"\tpushl\t{str_addr}")
+                self.program_lines.append(f"\tcall\t_printf")
+                self.program_lines.append(f"\tpopl %eax")
+                return
         else:
             raise Exception(f"Unidentified print. Received {print_type}.")
 
@@ -154,14 +159,15 @@ class CodeGenerator:
                 self.program_lines.append(f"\timul\t${offset},\t%eax")
                 self.program_lines.append(f"\taddl\t%eax,\t%edx")
                 offset = offset * dim
-            self.program_lines.append(f"\tmovl\t{variable_node.address+self.stack_base}(%ebp, %edx, 4),\t%eax")
+            self.program_lines.append(f"\tmovl\t-{variable_node.address}(%ebp, %edx, 4),\t%eax")
         else:
-            self.program_lines.append(f"\tmovl\t{variable_node.address+self.stack_base}(%ebp),\t%eax")
+            self.program_lines.append(f"\tmovl\t-{variable_node.address}(%ebp),\t%eax")
 
-        if str_addr != "$LC2":
-            self.program_lines.append(f"\tmovl\t%eax,\t4(%esp)")
-        self.program_lines.append(f"\tmovl\t{str_addr},\t(%esp)")
+        self.program_lines.append(f"\tpushl\t%eax")
+        self.program_lines.append(f"\tpushl\t{str_addr}")
         self.program_lines.append(f"\tcall\t_printf")
+        self.program_lines.append(f"\tpopl %eax")
+        self.program_lines.append(f"\tpopl %eax")
 
     def build_overhead(self):
         overhead = f"""\t.file	"{self.filename}.c"
@@ -169,9 +175,9 @@ class CodeGenerator:
 	.def	___main;	.scl	2;	.type	32;	.endef
 	.section .rdata,"dr"
 LC0:
-	.ascii "%d \\0"
+	.ascii "%3d \\0"
 LC1:
-	.ascii "%d\\12\\0"
+	.ascii "%3d\\12\\0"
 LC2:
 	.ascii "\\12\\0"
 	.text
@@ -185,8 +191,6 @@ LFB11:
 	.cfi_offset 5, -8
 	movl	%esp, %ebp
 	.cfi_def_cfa_register 5
-	andl	$-{self.base_address}, %esp
-	subl	${self.relative_address}, %esp
 	call	___main"""
         self.program_lines.append(overhead)
 
