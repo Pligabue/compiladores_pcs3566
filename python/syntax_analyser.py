@@ -1,5 +1,5 @@
 from lexical_analyser import LexicalAnalyser
-from node import ForNode, GoToNode, IfNode, OperatorNode, PrintNode, ProgramNode, AssignNode, LiteralNode, SubRoutineNode, VariableNode
+from node import ForNode, GoToNode, IfNode, OperatorNode, PrintNode, PrintlnNode, ProgramNode, AssignNode, LiteralNode, SubRoutineNode, VariableNode
 
 from helpers import is_int
 
@@ -69,6 +69,8 @@ class SyntaxAnalyser:
             self.END()
         elif keyword == "PRINT":
             self.PRINT()
+        elif keyword == "PRINTLN":
+            self.PRINTLN()
         elif self.current_token.type == "identifier":
             self.LET(with_keyword=False)
         else:
@@ -99,7 +101,7 @@ class SyntaxAnalyser:
 
         assign_node.type = expression_node.type
         if id_node.type is None:
-            id_node.type = expression_node.type
+            self.set_variable_type(id_node.name, expression_node.type)
         elif id_node.type != expression_node.type:
             raise Exception("Assigned and expression have different types.")
 
@@ -239,6 +241,15 @@ class SyntaxAnalyser:
         id_node = self.handle_identifier()
         print_node.add_child(id_node)
 
+    def PRINTLN(self):
+        println_node = PrintlnNode()
+        self.current_node.add_child(println_node)
+
+        self.get_next_token()
+        if self.current_token.type == "identifier":
+            id_node = self.handle_identifier()
+            println_node.add_child(id_node)
+
     def get_operation_type(self, left_node, right_node):
         types = left_node.type, right_node.type
         if types[0] is None or types[1] is None:
@@ -263,24 +274,20 @@ class SyntaxAnalyser:
         new_operands = []
         new_i = 0
         for i, operator in enumerate(operators):
-            if operator.operation == "*" or operator.operation == "/":
+            if operator.operation in ["*", "/"]:
                 operator_node = operator
                 left_node = operands[i]
                 right_node = operands[i+1]
                 operator_node.add_child(left_node)
                 operator_node.add_child(right_node)
                 operator_node.type = self.get_operation_type(left_node, right_node)
-                if new_i >= len(new_operands):
-                    new_operands.append(operator_node)
-                else:
-                    new_operands[new_i] = operator_node
                 operands[i+1] = operator_node
             else:
                 new_operators.append(operator)
                 new_operands.append(operands[i])
                 new_i += 1
-                if operator == operators[-1]:
-                    new_operands.append(operands[i+1])
+            if operator == operators[-1]:
+                new_operands.append(operands[i+1])
 
         acc_node = new_operands[0]
         for i, operator in enumerate(new_operators):
@@ -324,19 +331,21 @@ class SyntaxAnalyser:
                 break
             else:
                 raise Exception(f"Expressions must have either operators or separators. Received {self.current_token.value}")
+    
         return self.build_expression_node(operators, operands)
 
-    def get_symbol(self, name):
-        for symbol in self.current_node.variable_list:
-            if symbol.name == name:
-                return symbol
-        return None
+    def set_variable_type(self, variable_name, type):
+        for scope in self.scope_stack[::-1]:
+            for variable_node in scope.variable_list:
+                if variable_node.name == variable_name:
+                    variable_node.type = type
+                    return
 
     def get_variable_by_name(self, variable_name):
         for scope in self.scope_stack[::-1]:
             for variable_node in scope.variable_list:
                 if variable_node.name == variable_name:
-                    return variable_node
+                    return variable_node.deepcopy()
         return None
 
     def list_contains_symbol(self, variable_name):

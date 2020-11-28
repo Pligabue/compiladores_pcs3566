@@ -42,7 +42,6 @@ class Node:
 
             self.parent = grandparent
 
-
     def has_siblings(self):
         if self.is_root():
             return False
@@ -67,6 +66,12 @@ class Node:
     def node_type(self):
         class_name = self.__class__.__name__
         return None if class_name == "Node" else re.match(r"([a-zA-Z]+)Node", class_name).group(1).lower()
+
+    def get_all_children(self):
+        all_children = [self]
+        for child in self.children:
+            all_children += child.get_all_children()
+        return all_children
 
     def print_node(self, padding="", last_child=True):
 
@@ -100,6 +105,12 @@ class ProgramNode(Node):
     def __init__(self, line_number=None):
         super().__init__(line_number=line_number)
         self.variable_list = []
+        
+    def set_address(self, name, address):
+        all_children = self.get_root().get_all_children()
+        all_variables = [node for node in all_children if node.node_type() == "variable" and node.name == name]
+        for variable in all_variables:
+            variable.address = address
     
 
 class AssignNode(Node):
@@ -131,6 +142,14 @@ class VariableNode(Node):
         for dim in self.dims:
             items = items * dim
         return items
+
+    def deepcopy(self):
+        new_node = self.__class__(self.name)
+        new_node.type = self.type
+        new_node.dims = [dim for dim in self.dims]
+        new_node.children = []
+
+        return new_node
 
 class LiteralNode(Node):
 
@@ -169,6 +188,9 @@ class SubRoutineNode(Node):
         self.variable_list = []
 
 class PrintNode(Node):
+    pass
+
+class PrintlnNode(Node):
     pass
 
 if __name__ == "__main__":
