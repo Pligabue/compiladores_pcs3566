@@ -63,6 +63,8 @@ class SyntaxAnalyser:
             self.GOTO()
         elif keyword == "IF":
             self.IF()
+        elif keyword == "ELSE":
+            self.ELSE()
         elif keyword == "FOR":
             self.FOR()
         elif keyword == "END":
@@ -221,6 +223,20 @@ class SyntaxAnalyser:
         if_node.add_child(subroutine_node)
         self.scope_stack.append(subroutine_node)
         self.current_node = subroutine_node
+
+    def ELSE(self):
+        if self.scope_stack[-1].parent.node_type() != "if":
+            raise Exception(f"The ELSE clause must be used in the context of an IF clause. Received {self.scope_stack[-1]}")
+        
+        if_node = self.scope_stack[-1].parent
+        self.scope_stack.pop()
+
+        subroutine_node = SubRoutineNode()
+        if_node.add_child(subroutine_node)
+        self.scope_stack.append(subroutine_node)
+        self.current_node = subroutine_node
+
+        self.get_next_token()
 
     def END(self):
         if len(self.scope_stack) <= 1:
