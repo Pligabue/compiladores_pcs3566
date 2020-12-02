@@ -179,9 +179,16 @@ class CodeGenerator:
                 operation = "subl"
             elif expression_node.operation == "*":
                 operation = "imul"
+            elif expression_node.operation == "/":
+                operation = "idivl"
             else:
                 raise Exception(f"Operator {expression_node.operation} doesn't exist.")
-            self.program_lines.append(f"\t{operation}\t%edx,\t%eax")
+            if operation == "idivl":
+                self.program_lines.append(f"\tmovl\t%edx,\t%ecx")
+                self.program_lines.append(f"\tcltd")
+                self.program_lines.append(f"\tidivl\t%ecx")
+            else:
+                self.program_lines.append(f"\t{operation}\t%edx,\t%eax")
             self.program_lines.append(f"\tpushl\t%eax")
 
     def generate_print(self, print_node):

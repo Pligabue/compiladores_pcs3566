@@ -1,6 +1,8 @@
 from lexical_analyser import LexicalAnalyser
 from node import ForNode, GoToNode, IfNode, OperatorNode, PrintNode, PrintlnNode, ProgramNode, AssignNode, LiteralNode, SubRoutineNode, VariableNode
 
+import sys
+
 from helpers import is_int
 
 class SyntaxAnalyser:
@@ -442,5 +444,8 @@ class SyntaxAnalyser:
         return id_node
 
 if __name__ == "__main__":
-    ast = SyntaxAnalyser().build_ast()
+    filename = "sample_text.txt"
+    if len(sys.argv) > 1:
+        filename = sys.argv[1]
+    ast = SyntaxAnalyser(filename=filename).build_ast()
     ast.print_tree()
