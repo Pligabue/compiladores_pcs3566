@@ -1,3 +1,4 @@
+from node import IfNode
 from syntax_analyser import SyntaxAnalyser
 
 class CodeGenerator:
@@ -48,6 +49,8 @@ class CodeGenerator:
             self.generate_print(node)
         elif node.node_type() == "for":
             self.generate_for(node)
+        elif node.node_type() == "if":
+            self.generate_if(node)
 
     def generate_assign(self, node):
         variable_node = node.children[0]
@@ -90,6 +93,54 @@ class CodeGenerator:
         self.program_lines.append(f"FOR_{for_node.line_number}_END:")
         self.program_lines.append(f"\tcmpl\t${limit_node.value},\t-{variable_node.address}(%ebp)")
         self.program_lines.append(f"\tjle\tFOR_{for_node.line_number}_START")
+
+    def generate_if(self, if_node):
+        comparator_node = if_node.children[0]
+        true_node = if_node.children[1]
+        if len(if_node.children) > 2:
+            false_node = if_node.children[2]
+            destination = f"ELSE_{if_node.line_number}"
+        else:
+            false_node = None
+            destination = f"END_{if_node.line_number}"
+
+        left_node = comparator_node.children[0]
+        right_node = comparator_node.children[1]
+        self.generate_expression(left_node)
+        self.generate_expression(right_node)
+        self.program_lines.append(f"\tpopl\t%eax")
+        self.program_lines.append(f"\tpopl\t%edx")
+
+        if comparator_node.operation == "==":
+            jump = "jne"
+        elif comparator_node.operation == "<":
+            jump = "jg"
+            self.program_lines.append(f"\tsubl\t$1,\t%eax")
+        elif comparator_node.operation == "<=":
+            jump = "jg"
+        elif comparator_node.operation == ">":
+            jump = "jle"
+        elif comparator_node.operation == ">=":
+            jump = "jle"
+            self.program_lines.append(f"\tsubl\t$1,\t%eax")
+        elif comparator_node.operation == "<>":
+            jump = "je"
+        else:
+            raise Exception(f"Expected comparator. Received {comparator_node.value}.")
+
+        self.program_lines.append(f"\tcmpl\t%eax,\t%edx")
+        self.program_lines.append(f"\t{jump}\t{destination}")
+
+        for child_node in true_node.children:
+            self.generate_code(child_node)
+        self.program_lines.append(f"\tjmp\tEND_{if_node.line_number}")
+
+        if false_node is not None:
+            self.program_lines.append(f"ELSE_{if_node.line_number}:")
+            for child_node in false_node.children:
+                self.generate_code(child_node)
+
+        self.program_lines.append(f"END_{if_node.line_number}:")
 
     def generate_expression(self, expression_node):
         if expression_node.node_type() == "literal":
