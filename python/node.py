@@ -174,11 +174,12 @@ class LiteralNode(Node):
         super().__init__()
         self.value = value
         self.set_type(value)
+        self.address = None
 
-    def set_type(self, value):  
-        if re.match(r"[0-9]+", value):
+    def set_type(self, value):
+        if re.match(r"-?[0-9]+", value):
             self.type = "int"  
-        elif re.match(r"[0-9]*\.[0-9]+", value):
+        elif re.match(r"-?[0-9]*\.[0-9]+", value):
             self.type = "float"
         elif re.match(r'".*"', value):
             self.type = "string"

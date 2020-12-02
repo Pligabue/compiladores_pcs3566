@@ -16,6 +16,7 @@ class SyntaxAnalyser:
         self.current_line_number = 0
         self.text_line = 1
         self.scope_stack = [self.root]
+        self.string_list = []
 
     def tokens_remaining(self):
         return self.current_token_index < len(self.token_list)
@@ -127,8 +128,37 @@ class SyntaxAnalyser:
             if self.current_token.type != "separator" or self.current_token.value != "]":
                 raise Exception("Must close brackets")
             self.get_next_token()
+        
+        variable_node = VariableNode(id_name, dims=dims, scope=self.scope_stack[-1])
+        self.current_node.variable_list.append(variable_node)
+        if self.current_token.type == "operator" and self.current_token.value == "=":
+            self.get_next_token()
+            current_dim = -1
+            current_pos = [0 for dim in dims]
+            while self.current_token.type != "separator" or self.current_token.value != "\n":
+                if self.current_token.type == "separator" and self.current_token.value == "{":
+                    current_dim += 1
+                elif self.current_token.type == "separator" and self.current_token.value == "}":
+                    current_pos[current_dim] = 0
+                    current_dim -= 1
+                elif self.current_token.type == "separator" and self.current_token.value == ",":
+                    current_pos[current_dim] += 1
+                elif self.current_token.type == "literal":
+                    literal_node = LiteralNode(self.current_token.value)
+                    assign_node = AssignNode()
+                    assign_node.type = literal_node.type
+                    variable_node.type = literal_node.type
 
-        self.current_node.variable_list.append(VariableNode(id_name, dims=dims, scope=self.scope_stack[-1]))
+                    temp_variable_node = variable_node.deepcopy()
+                    assign_node.add_child(temp_variable_node)
+
+                    for pos in current_pos:
+                        temp_variable_node.add_child(LiteralNode(str(pos)))
+
+                    assign_node.add_child(literal_node)
+                    self.current_node.add_child(assign_node)
+                    
+                self.get_next_token()
 
     def GOTO(self):
         goto_node = GoToNode()
@@ -251,11 +281,22 @@ class SyntaxAnalyser:
         self.current_node.add_child(print_node)
 
         self.get_next_token()
-        if self.current_token.type != "identifier":
-            raise Exception(f"Can only print variables. Received {self.current_token.value}")
+        literal_node = LiteralNode(self.current_token.value)
+        print_node.add_child(literal_node)
+        if literal_node.type == "string":
+            literal_node.address = f"LC{len(self.string_list)}"
+            self.string_list.append(literal_node)
+        else:
+            raise Exception(f"Expected first argument to be a string. Received {self.current_token}.")
 
-        id_node = self.handle_identifier()
-        print_node.add_child(id_node)
+        self.get_next_token()
+        while self.current_token.type != "separator" or self.current_token.value != "\n":
+            if self.current_token.type != "separator" or self.current_token.value != ",":
+                expression_node = self.handle_expression()
+                print_node.add_child(expression_node)
+            else:
+                self.get_next_token()
+
 
     def PRINTLN(self):
         println_node = PrintlnNode()

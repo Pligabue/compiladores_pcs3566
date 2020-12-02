@@ -12,6 +12,11 @@ class CodeGenerator:
     def setup(self):
         syntax_analyser = SyntaxAnalyser(filename=self.filename)
         self.ast = syntax_analyser.build_ast()
+        self.all_strings = ""
+        for string in syntax_analyser.string_list:
+            self.all_strings += string.address + ":\n"
+            string_value = string.value[:-1] + "\\0\""
+            self.all_strings += f"\t.ascii\t{string_value}\n"
 
     def run(self):
         if self.ast.node_type() != "program":
@@ -180,57 +185,24 @@ class CodeGenerator:
             self.program_lines.append(f"\tpushl\t%eax")
 
     def generate_print(self, print_node):
-        print_type = print_node.node_type()
-        
-        if print_type == "print":
-            str_addr = "$LC0"
-            variable_node = print_node.children[0]
-        elif print_type == "println":
-            if print_node.children:
-                str_addr = "$LC1"
-                variable_node = print_node.children[0]
+
+        for child_node in print_node.children[::-1]:
+            if child_node == print_node.children[0]:
+                self.program_lines.append(f"\tpushl\t${child_node.address}")
             else:
-                str_addr = "$LC2"
-                self.program_lines.append(f"\tpushl\t{str_addr}")
-                self.program_lines.append(f"\tcall\t_printf")
-                self.program_lines.append(f"\tpopl %eax")
-                return
-        else:
-            raise Exception(f"Unidentified print. Received {print_type}.")
+                self.generate_expression(child_node)
 
-        n_dims = variable_node.num_of_dims()
-        if n_dims != 0:
-            for n_dim in range(n_dims):
-                n_index_node = variable_node.children[n_dim]
-                self.generate_expression(n_index_node)
-            offset = 1
-            self.program_lines.append(f"\tmovl\t$0,\t%edx")
-            for dim in variable_node.dims[::-1]:
-                self.program_lines.append(f"\tpopl\t%eax")
-                self.program_lines.append(f"\timul\t${offset},\t%eax")
-                self.program_lines.append(f"\taddl\t%eax,\t%edx")
-                offset = offset * dim
-            self.program_lines.append(f"\tmovl\t-{variable_node.address}(%ebp, %edx, 4),\t%eax")
-        else:
-            self.program_lines.append(f"\tmovl\t-{variable_node.address}(%ebp),\t%eax")
-
-        self.program_lines.append(f"\tpushl\t%eax")
-        self.program_lines.append(f"\tpushl\t{str_addr}")
         self.program_lines.append(f"\tcall\t_printf")
-        self.program_lines.append(f"\tpopl %eax")
-        self.program_lines.append(f"\tpopl %eax")
+
+        for child_node in print_node.children:  
+            self.program_lines.append(f"\tpopl %eax")
 
     def build_overhead(self):
         overhead = f"""\t.file	"{self.filename}.c"
 	.text
 	.def	___main;	.scl	2;	.type	32;	.endef
 	.section .rdata,"dr"
-LC0:
-	.ascii "%3d \\0"
-LC1:
-	.ascii "%3d\\12\\0"
-LC2:
-	.ascii "\\12\\0"
+{self.all_strings}
 	.text
 	.globl	_main
 	.def	_main;	.scl	2;	.type	32;	.endef

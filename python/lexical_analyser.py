@@ -9,7 +9,7 @@ class LexicalAnalyser:
                 "LOG", "SQR", "INT", "RND", "READ", "DATA", "PRINT", "GOTO",
                 "GO", "TO", "IF", "THEN", "FOR", "STEP", "NEXT", "DIM", "DEF FN",
                 "GOSUB", "RETURN", "REM", "E"}
-    SEPARATORS = {"(", ")", ",", "[", "]", "\n"}
+    SEPARATORS = {"(", ")", ",", "[", "]", "\n", "{", "}"}
 
     def __init__(self, filename="./sample_text.txt") -> None:
         self.token_list = []
@@ -87,9 +87,21 @@ class LexicalAnalyser:
         except IOError:
             print("File does no exist.\n")
         
-        if self.token_list[-1].type != "separator":
+        if self.token_list[-1].type != "separator" or self.token_list[-1].value != "\n":
             self.token_list.append(Token("separator", "\n"))
             
+        for i, token in enumerate(self.token_list):
+            if (token.type == "literal" and
+               self.token_list[i-1].type == "operator" and 
+               self.token_list[i-1].value == "-" and
+               self.token_list[i-2].type != "literal"):
+
+               literal_token = self.token_list.pop(i)
+               literal_token.value = "-" + literal_token.value
+
+               self.token_list[i-1] = literal_token
+
+
         return self.token_list
 
 if __name__ == "__main__":
