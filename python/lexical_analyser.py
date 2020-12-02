@@ -87,8 +87,16 @@ class LexicalAnalyser:
         except IOError:
             print("File does no exist.\n")
         
-        if self.token_list[-1].type != "separator" or self.token_list[-1].value != "\n":
-            self.token_list.append(Token("separator", "\n"))
+        new_line_token = Token("separator", "\n")
+        while True:
+            last_token = self.token_list[-1]
+            if last_token.type == "separator" and last_token.value == "\n":
+                self.token_list.pop()
+            else:
+                break
+        self.token_list.append(new_line_token)
+
+
             
         for i, token in enumerate(self.token_list):
             if (token.type == "literal" and
