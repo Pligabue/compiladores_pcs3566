@@ -1,0 +1,2 @@
+050 LET a = 40
+100 PRINT "Variable a = %d\nVariable a + 10 = %d", a, a + 10

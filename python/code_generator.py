@@ -1,6 +1,8 @@
 from node import IfNode
 from syntax_analyser import SyntaxAnalyser
 
+import sys
+
 class CodeGenerator:
 
     def __init__(self, filename="./sample_text.txt") -> None:
@@ -35,7 +37,7 @@ class CodeGenerator:
 
         self.ast.print_tree()
 
-        f = open(f"{self.filename[:-4]}.s", "w")
+        f = open(f"final.s", "w")
         f.write("\n".join(self.program_lines) + "\n")
         f.close()
 
@@ -237,5 +239,8 @@ LFE11:
         self.program_lines.append(tail)
 
 if __name__ == "__main__":
-    code_generator = CodeGenerator()
+    filename = "sample_text.txt"
+    if len(sys.argv) > 1:
+        filename = sys.argv[1]
+    code_generator = CodeGenerator(filename=filename)
     code_generator.run()

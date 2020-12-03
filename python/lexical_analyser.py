@@ -82,6 +82,8 @@ class LexicalAnalyser:
             print(self.filename)
             f = open(self.filename, "r")
             for line in f:
+                if not line.strip():
+                    continue
                 self.build_tokens(line)
             f.close()
         except IOError:
