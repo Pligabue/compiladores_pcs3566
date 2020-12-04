@@ -2,6 +2,8 @@ import re
 from token import Token
 from typing import NewType
 
+import sys
+
 class LexicalAnalyser:
 
     OPERATORS = {"+", "-", "*", "/", ">=", ">", "<>", "<", "<=", "=", "=="}
@@ -104,7 +106,7 @@ class LexicalAnalyser:
             if (token.type == "literal" and
                self.token_list[i-1].type == "operator" and 
                self.token_list[i-1].value == "-" and
-               self.token_list[i-2].type != "literal"):
+               self.token_list[i-2].type not in ["literal", "identifier"]):
 
                literal_token = self.token_list.pop(i)
                literal_token.value = "-" + literal_token.value
@@ -115,6 +117,10 @@ class LexicalAnalyser:
         return self.token_list
 
 if __name__ == "__main__":
-    token_list = LexicalAnalyser().analyse_text()
+
+    filename = "sample_text.txt"
+    if len(sys.argv) > 1:
+        filename = sys.argv[1]
+    token_list = LexicalAnalyser(filename=filename).analyse_text()
     for token in token_list:
         print(token)

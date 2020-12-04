@@ -1,0 +1,24 @@
+010 DIM a[10] = {0, 3, 5, 8, -5, -12, 15, 13, 6, 0}
+011 LET size = 10
+
+020 LET min = a[0]
+030 LET max = a[0]
+
+040 FOR i = 1 TO size-1
+050     IF a[i] > max
+060         max = a[i]
+070     END
+080     IF a[i] < min
+090         min = a[i]
+100     END
+110 END
+
+120 PRINT "ARRAY = {"
+130 FOR i = 1 TO size-1
+140     PRINT "%d", a[i]
+150     IF i <> 9
+160         PRINT ", "
+170     END
+180 END
+190 PRINT "}\n"
+200 PRINT "MAX = %d\nMIN = %d\n", max, min

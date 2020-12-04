@@ -98,7 +98,10 @@ class CodeGenerator:
 
         self.program_lines.append(f"\taddl\t${step_node.value},\t-{variable_node.address}(%ebp)")
         self.program_lines.append(f"FOR_{for_node.line_number}_END:")
-        self.program_lines.append(f"\tcmpl\t${limit_node.value},\t-{variable_node.address}(%ebp)")
+
+        self.generate_expression(limit_node)
+        self.program_lines.append(f"\tpopl\t%eax")
+        self.program_lines.append(f"\tcmpl\t%eax,\t-{variable_node.address}(%ebp)")
         self.program_lines.append(f"\tjle\tFOR_{for_node.line_number}_START")
 
     def generate_if(self, if_node):

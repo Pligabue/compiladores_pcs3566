@@ -1,28 +1,29 @@
 010 DIM a[3][3] = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}
 020 DIM b[3][3] = {{10, 11, 12}, {13, 14, 15}, {16, 17, 18}}
 030 DIM c[3][3]
+035 LET size = 3
 
 040 PRINT "A is:\n"
-050 FOR i = 0 TO 2
-060     FOR j = 0 TO 2
+050 FOR i = 0 TO size-1
+060     FOR j = 0 TO size-1
 070         PRINT "%3d ", a[i][j]
 080     END
 090     PRINT "\n"
 100 END
 
 110 PRINT "B is:\n"
-120 FOR i = 0 TO 2
-130     FOR j = 0 TO 2
+120 FOR i = 0 TO size-1
+130     FOR j = 0 TO size-1
 140         PRINT "%3d ", b[i][j]
 150     END
 160     PRINT "\n"
 170 END
 
 180 PRINT "C = A x B is:\n"
-190 FOR i = 0 TO 2
-200     FOR j = 0 TO 2
+190 FOR i = 0 TO size-1
+200     FOR j = 0 TO size-1
 210         c[i][j] = 0
-220         FOR k = 0 TO 2
+220         FOR k = 0 TO size-1
 230             c[i][j] = c[i][j] + a[i][k] * b[k][j]
 240         END
 250         PRINT "%3d ", c[i][j]
