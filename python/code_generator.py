@@ -210,7 +210,7 @@ class CodeGenerator:
             self.program_lines.append(f"\tpopl %eax")
 
     def build_overhead(self):
-        overhead = f"""\t.file	"{self.filename}.c"
+        overhead = f"""\t.file	"{self.filename}"
 	.text
 	.def	___main;	.scl	2;	.type	32;	.endef
 	.section .rdata,"dr"
