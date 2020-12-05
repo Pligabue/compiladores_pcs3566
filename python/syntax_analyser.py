@@ -329,35 +329,24 @@ class SyntaxAnalyser:
         if len(operators) <= 0:
             return operands[0]
 
-        new_operators = []
-        new_operands = []
-        new_i = 0
-        for i, operator in enumerate(operators):
-            if operator.operation in ["*", "/"]:
-                operator_node = operator
-                left_node = operands[i]
-                right_node = operands[i+1]
-                operator_node.add_child(left_node)
-                operator_node.add_child(right_node)
-                operator_node.type = self.get_operation_type(left_node, right_node)
-                operands[i+1] = operator_node
-            else:
-                new_operators.append(operator)
-                new_operands.append(operands[i])
-                new_i += 1
-            if operator == operators[-1]:
-                new_operands.append(operands[i+1])
+        operator_group_list = [["^"], ["*", "/"], ["+", "-"]]
 
-        acc_node = new_operands[0]
-        for i, operator in enumerate(new_operators):
-            operator_node = operator
-            right_node = new_operands[i+1]
-            operator_node.add_child(acc_node)
-            operator_node.add_child(right_node)
-            operator_node.type = self.get_operation_type(acc_node, right_node)
-            acc_node = operator_node
-
-        return acc_node
+        for operator_group in operator_group_list:
+            index = 0
+            while index < len(operators):
+                operator = operators[index]
+                if operator.operation in operator_group:
+                    operator_node = operators.pop(index)
+                    left_node = operands.pop(index)
+                    right_node = operands.pop(index)
+                    operator_node.add_child(left_node)
+                    operator_node.add_child(right_node)
+                    operator_node.type = self.get_operation_type(left_node, right_node)
+                    operands.insert(index, operator_node)
+                else:
+                    index += 1
+                    
+        return operands[0]
 
     def handle_expression(self):
         operands = []
@@ -380,7 +369,7 @@ class SyntaxAnalyser:
                 break
 
             if self.current_token.type == "operator":
-                if self.current_token.value in ["*", "/", "+", "-"]:
+                if self.current_token.value in ["*", "/", "+", "-", "^"]:
                     operator_node = OperatorNode(self.current_token.value)
                     operators.append(operator_node)
                     self.get_next_token()

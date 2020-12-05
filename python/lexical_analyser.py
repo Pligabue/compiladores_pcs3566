@@ -6,7 +6,7 @@ import sys
 
 class LexicalAnalyser:
 
-    OPERATORS = {"+", "-", "*", "/", ">=", ">", "<>", "<", "<=", "=", "=="}
+    OPERATORS = {"+", "-", "*", "/", "^", ">=", ">", "<>", "<", "<=", "=", "=="}
     KEYWORDS = {"END", "LET", "FN", "SIN", "COS", "TAN", "ATN", "EXP", "ABS",
                 "LOG", "SQR", "INT", "RND", "READ", "DATA", "PRINT", "GOTO",
                 "GO", "TO", "IF", "THEN", "FOR", "STEP", "NEXT", "DIM", "DEF FN",

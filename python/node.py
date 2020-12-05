@@ -73,6 +73,12 @@ class Node:
             all_children += child.get_all_children()
         return all_children
 
+    def get_node_position(self):
+        if self.parent is None:
+            return "0"
+        else:
+            return f"{self.parent.get_node_position()}_{self.parent.children.index(self)}"
+
     def print_node(self, padding="", last_child=True):
 
         print(f"{padding}|-{self}")

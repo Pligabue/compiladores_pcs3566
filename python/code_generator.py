@@ -155,6 +155,7 @@ class CodeGenerator:
     def generate_expression(self, expression_node):
         if expression_node.node_type() == "literal":
             self.program_lines.append(f"\tpushl\t${expression_node.value}")
+
         elif expression_node.node_type() == "variable":
             n_dims = expression_node.num_of_dims()
             if n_dims != 0:
@@ -171,30 +172,46 @@ class CodeGenerator:
                 self.program_lines.append(f"\tpushl\t-{expression_node.address}(%ebp, %edx, 4)")
             else:
                 self.program_lines.append(f"\tpushl\t-{expression_node.address}(%ebp)")
+
         elif expression_node.node_type() == "operator":
+
             left_node = expression_node.children[0]
             right_node = expression_node.children[1]
             self.generate_expression(left_node)
             self.generate_expression(right_node)
             self.program_lines.append(f"\tpopl\t%edx")
             self.program_lines.append(f"\tpopl\t%eax")
-            if expression_node.operation == "+":
-                operation = "addl"
-            elif expression_node.operation == "-":
-                operation = "subl"
-            elif expression_node.operation == "*":
-                operation = "imul"
-            elif expression_node.operation == "/":
-                operation = "idivl"
-            else:
+
+            operations = {
+                "+": "addl",
+                "-": "subl",
+                "*": "imul",
+                "/": "divl",
+                "^": "pow"
+            }
+            try:
+                operation = operations[expression_node.operation]
+            except KeyError as e:
                 raise Exception(f"Operator {expression_node.operation} doesn't exist.")
+
             if operation == "idivl":
                 self.program_lines.append(f"\tmovl\t%edx,\t%ecx")
                 self.program_lines.append(f"\tcltd")
                 self.program_lines.append(f"\tidivl\t%ecx")
+                self.program_lines.append(f"\tpushl\t%eax")
+            elif operation == "pow":
+                self.program_lines.append(f"\tmovl\t$1,\t%ecx")
+                self.program_lines.append(f"POW_{expression_node.get_node_position()}_START:")
+                self.program_lines.append(f"\tcmpl\t$0,\t%edx")
+                self.program_lines.append(f"\tjle\tPOW_{expression_node.get_node_position()}_END")
+                self.program_lines.append(f"\tsubl\t$1,\t%edx")
+                self.program_lines.append(f"\timul\t%eax,\t%ecx")
+                self.program_lines.append(f"\tjmp\tPOW_{expression_node.get_node_position()}_START")
+                self.program_lines.append(f"POW_{expression_node.get_node_position()}_END:")
+                self.program_lines.append(f"\tpushl\t%ecx")
             else:
                 self.program_lines.append(f"\t{operation}\t%edx,\t%eax")
-            self.program_lines.append(f"\tpushl\t%eax")
+                self.program_lines.append(f"\tpushl\t%eax")
 
     def generate_print(self, print_node):
 
