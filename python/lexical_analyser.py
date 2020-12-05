@@ -99,8 +99,6 @@ class LexicalAnalyser:
             else:
                 break
         self.token_list.append(new_line_token)
-
-
             
         for i, token in enumerate(self.token_list):
             if (token.type == "literal" and
@@ -113,6 +111,14 @@ class LexicalAnalyser:
 
                self.token_list[i-1] = literal_token
 
+        for i, token in enumerate(self.token_list):
+            if (token.type == "identifier" and
+               self.token_list[i-1].type == "operator" and 
+               self.token_list[i-1].value == "-" and
+               self.token_list[i-2].type not in ["literal", "identifier"]):
+
+               self.token_list[i-1].value = "*"
+               self.token_list.insert(i-1, Token(type="literal", value="-1"))
 
         return self.token_list
 

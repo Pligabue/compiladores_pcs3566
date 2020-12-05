@@ -1,0 +1,8 @@
+000 LET a = 1
+
+010 IF a < 10
+020     PRINT "a < 10"
+030 ELSE
+040     PRINT "a >= 10"
+050 END
+

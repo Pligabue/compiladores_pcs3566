@@ -1,0 +1,25 @@
+000 DIM a[10] = {2, 3, 5, 1, 9, 41, -13, -55, 4, -7}
+010 LET size = 10
+
+020 PRINT "ARRAY = {"
+030 FOR i = 0 TO size-1
+040     PRINT "%d", a[i]
+050     IF i <> 9
+060         PRINT ", "
+070     END
+080 END
+090 PRINT "}\n"
+
+120 LET sum = 0
+130 FOR i = 0 TO size-1
+140     PRINT "ACC = %d; ARRAY ITEM = %d; ", sum, a[i]
+150     IF a[i] >= 0
+160         PRINT "ABS VALUE = %d\n", a[i]
+170         sum = sum + a[i]
+180     ELSE
+190         PRINT "ABS VALUE = %d\n", -a[i]
+200         sum = sum - a[i]
+210     END
+220 END
+
+170 PRINT "SUM = %d\n", sum
