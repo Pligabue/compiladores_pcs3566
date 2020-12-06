@@ -43,7 +43,10 @@ class SyntaxAnalyser:
             self.set_line_number()
             self.handle_keyword(self.current_token.value)
             if self.tokens_remaining() and self.current_token.value != "\n":
-                raise Exception(f"Command must end with a new line. Ended with {self.current_token.value}.")
+                if self.current_token.value == ")":
+                    raise Exception(f"Missing opening parentheses. Check if every closing parenthesis has an associated opening parenthesis.")
+                else:
+                    raise Exception(f"Command must end with a new line. Received {self.current_token.value}.")
             else:
                 self.get_next_token()
         return self.root
@@ -378,7 +381,8 @@ class SyntaxAnalyser:
             elif self.current_token.type == "separator" or self.current_token.type == "keyword":
                 break
             else:
-                raise Exception(f"Expressions must have either operators or separators. Received {self.current_token.value}")
+                raise Exception(f"Missing closing parentheses. Check if every opening parenthesis has an associated closing parenthesis.")
+    
     
         return self.build_expression_node(operators, operands)
 
