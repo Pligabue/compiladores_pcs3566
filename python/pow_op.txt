@@ -1,0 +1,8 @@
+Unar000 LET a = 3
+010 PRINT "a = %d\n", a
+020 PRINT "a^2 = %d\n", a^2
+030 PRINT "a^3 = %d\n", a^3
+040 PRINT "2+a^3 = %d\n", 2+a^3
+060 PRINT "(2+a)^3 = %d\n", (2+a)^3
+070 PRINT "2*a^3 = %d\n", 2*a^3
+080 PRINT "(2*a)^3 = %d\n", (2*a)^3

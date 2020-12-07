@@ -1,0 +1,5 @@
+000 LET a = 100
+010 PRINT "a = %d\n", a
+020 PRINT "-a = %d\n", -a
+030 PRINT "10 - a = %d\n", 10 - a
+040 PRINT "10 - -a = %d\n", 10 - -a
