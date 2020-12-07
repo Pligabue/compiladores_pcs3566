@@ -19,6 +19,7 @@ class SyntaxAnalyser:
         self.text_line = 1
         self.scope_stack = [self.root]
         self.string_list = []
+        self.error_list = []
 
     def tokens_remaining(self):
         return self.current_token_index < len(self.token_list)
@@ -60,29 +61,35 @@ class SyntaxAnalyser:
             raise Exception(f'Invalid line number "{self.current_token.value}" on line {self.text_line}.\n')
 
     def handle_keyword(self, keyword):
+        try:
+            if keyword == "LET":
+                self.LET()
+            elif keyword == "DIM":
+                self.DIM()
+            elif keyword == "GOTO":
+                self.GOTO()
+            elif keyword == "IF":
+                self.IF()
+            elif keyword == "ELSE":
+                self.ELSE()
+            elif keyword == "FOR":
+                self.FOR()
+            elif keyword == "END":
+                self.END()
+            elif keyword == "PRINT":
+                self.PRINT()
+            elif keyword == "PRINTLN":
+                self.PRINTLN()
+            elif self.current_token.type == "identifier":
+                self.LET(with_keyword=False)
+            else:
+                raise Exception(f"Invalid command at line {self.text_line}.")
+        except Exception as e:
+            self.current_node.children.pop()
+            self.error_list.append((e, self.current_line_number))
+            while self.current_token.value != "\n":
+                self.get_next_token() 
 
-        if keyword == "LET":
-            self.LET()
-        elif keyword == "DIM":
-            self.DIM()
-        elif keyword == "GOTO":
-            self.GOTO()
-        elif keyword == "IF":
-            self.IF()
-        elif keyword == "ELSE":
-            self.ELSE()
-        elif keyword == "FOR":
-            self.FOR()
-        elif keyword == "END":
-            self.END()
-        elif keyword == "PRINT":
-            self.PRINT()
-        elif keyword == "PRINTLN":
-            self.PRINTLN()
-        elif self.current_token.type == "identifier":
-            self.LET(with_keyword=False)
-        else:
-            raise Exception(f"Invalid command at line {self.text_line}.")
 
     def LET(self, with_keyword=True):                
         assign_node = AssignNode()
@@ -351,7 +358,7 @@ class SyntaxAnalyser:
                     
         return operands[0]
 
-    def handle_expression(self):
+    def handle_expression(self, level=0):
         operands = []
         operators = []
         
@@ -365,7 +372,7 @@ class SyntaxAnalyser:
                 self.get_next_token()
             elif self.current_token.type == "separator" and self.current_token.value == "(":
                 self.get_next_token()
-                subexpression_node = self.handle_expression()
+                subexpression_node = self.handle_expression(level=level+1)
                 self.get_next_token()
                 operands.append(subexpression_node)
             else:
@@ -379,15 +386,17 @@ class SyntaxAnalyser:
                 else:
                     break
             elif self.current_token.type == "separator" or self.current_token.type == "keyword":
+                if level > 0 and self.current_token.value != ")":
+                    raise Exception(f"Missing closing parentheses. Check if every opening parenthesis has an associated closing parenthesis.")
+                elif level == 0 and self.current_token.value == ")":    
+                    raise Exception(f"Missing opening parentheses. Check if every closing parenthesis has an associated opening parenthesis.")
                 break
             else:
-                raise Exception(f"Missing closing parentheses. Check if every opening parenthesis has an associated closing parenthesis.")
-    
+                raise Exception(f"Incorrect symbol withing expression. Received {self.current_token.value}.")
     
         return self.build_expression_node(operators, operands)
 
     def set_variable_type(self, variable_name, type):
-        found = False
         for scope in self.scope_stack[::-1]:
             for variable_node in scope.variable_list:
                 if variable_node.name == variable_name:
@@ -440,5 +449,8 @@ if __name__ == "__main__":
     filename = "sample_text.txt"
     if len(sys.argv) > 1:
         filename = sys.argv[1]
-    ast = SyntaxAnalyser(filename=filename).build_ast()
+    syntax_analyser = SyntaxAnalyser(filename=filename)
+    ast = syntax_analyser.build_ast()
     ast.print_tree()
+    for e, line_number in syntax_analyser.error_list:
+        print(f"At line {line_number}:", e)

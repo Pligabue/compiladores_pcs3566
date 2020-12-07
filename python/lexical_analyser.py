@@ -101,10 +101,12 @@ class LexicalAnalyser:
         self.token_list.append(new_line_token)
             
         for i, token in enumerate(self.token_list):
-            if (token.type == "literal" and
-               self.token_list[i-1].type == "operator" and 
-               self.token_list[i-1].value == "-" and
-               self.token_list[i-2].type not in ["literal", "identifier"]):
+            token_is_literal = (token.type == "literal")
+            previous_token_is_minus = (self.token_list[i-1].type == "operator" and self.token_list[i-1].value == "-")
+            first_operand_is_literal_or_id = (self.token_list[i-2].type in ["literal", "identifier"])
+            first_operand_is_closing_parenthesis = (self.token_list[i-2].type == "separator" and self.token_list[i-2].value == ")")
+            if (token_is_literal and previous_token_is_minus and 
+                not first_operand_is_literal_or_id and not first_operand_is_closing_parenthesis):
 
                literal_token = self.token_list.pop(i)
                literal_token.value = "-" + literal_token.value
@@ -112,11 +114,12 @@ class LexicalAnalyser:
                self.token_list[i-1] = literal_token
 
         for i, token in enumerate(self.token_list):
-            if (token.type == "identifier" and
-               self.token_list[i-1].type == "operator" and 
-               self.token_list[i-1].value == "-" and
-               self.token_list[i-2].type not in ["literal", "identifier"]):
-
+            token_is_id = (token.type == "identifier")
+            previous_token_is_minus = (self.token_list[i-1].type == "operator" and self.token_list[i-1].value == "-")
+            first_operand_is_literal_or_id = (self.token_list[i-2].type in ["literal", "identifier"])
+            first_operand_is_closing_parenthesis = (self.token_list[i-2].type == "separator" and self.token_list[i-2].value == ")")
+            if (token_is_id and previous_token_is_minus and 
+                not first_operand_is_literal_or_id and not first_operand_is_closing_parenthesis):
                self.token_list[i-1].value = "*"
                self.token_list.insert(i-1, Token(type="literal", value="-1"))
 
