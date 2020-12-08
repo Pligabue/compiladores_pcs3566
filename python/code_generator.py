@@ -14,6 +14,7 @@ class CodeGenerator:
     def setup(self):
         syntax_analyser = SyntaxAnalyser(filename=self.filename)
         self.ast = syntax_analyser.build_ast()
+        self.error_list = syntax_analyser.error_list
         self.all_strings = ""
         for string in syntax_analyser.string_list:
             self.all_strings += string.address + ":\n"
@@ -36,6 +37,8 @@ class CodeGenerator:
         self.build_tail()
 
         self.ast.print_tree()
+        for e, line_number in self.error_list:
+            print(f"At line {line_number}:", e)
 
         f = open(f"final.s", "w")
         f.write("\n".join(self.program_lines) + "\n")

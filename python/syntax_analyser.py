@@ -376,7 +376,7 @@ class SyntaxAnalyser:
                 self.get_next_token()
                 operands.append(subexpression_node)
             else:
-                break
+                raise Exception(f"Missing literal or identifier. Received {self.current_token.value}.")
 
             if self.current_token.type == "operator":
                 if self.current_token.value in ["*", "/", "+", "-", "^"]:
@@ -392,7 +392,7 @@ class SyntaxAnalyser:
                     raise Exception(f"Missing opening parentheses. Check if every closing parenthesis has an associated opening parenthesis.")
                 break
             else:
-                raise Exception(f"Incorrect symbol withing expression. Received {self.current_token.value}.")
+                raise Exception(f"Incorrect symbol within expression. Received {self.current_token.value}.")
     
         return self.build_expression_node(operators, operands)
 

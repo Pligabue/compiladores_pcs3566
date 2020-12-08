@@ -42,6 +42,11 @@ class Node:
 
             self.parent = grandparent
 
+    def replace_self_with(self, node):
+        i = self.parent.children.index(self)
+        self.parent.children[i] = node
+        self.parent = None
+
     def has_siblings(self):
         if self.is_root():
             return False
