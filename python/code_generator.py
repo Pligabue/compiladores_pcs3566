@@ -61,6 +61,8 @@ class CodeGenerator:
             self.generate_for(node)
         elif node.node_type() == "if":
             self.generate_if(node)
+        elif node.node_type() == "read":
+            self.generate_read(node)
 
     def generate_assign(self, node):
         variable_node = node.children[0]
@@ -165,6 +167,7 @@ class CodeGenerator:
                 for n_dim in range(n_dims):
                     n_index_node = expression_node.children[n_dim]
                     self.generate_expression(n_index_node)
+
                 offset = 1
                 self.program_lines.append(f"\tmovl\t$0,\t%edx")
                 for dim in expression_node.dims[::-1]:
@@ -229,6 +232,38 @@ class CodeGenerator:
         for child_node in print_node.children:  
             self.program_lines.append(f"\tpopl %eax")
 
+    def generate_read(self, read_node):
+
+        for child_node in read_node.children[::-1]:
+            if child_node == read_node.children[0]:
+                self.program_lines.append(f"\tpushl\t${child_node.address}")
+            else:
+                id_node = child_node
+                n_dims = id_node.num_of_dims()
+                if n_dims != 0:
+                    for n_dim in range(n_dims):
+                        n_index_node = id_node.children[n_dim]
+                        self.generate_expression(n_index_node)
+
+                    offset = 1
+                    self.program_lines.append(f"\tmovl\t$0,\t%edx")
+                    for dim in id_node.dims[::-1]:
+                        self.program_lines.append(f"\tpopl\t%eax")
+                        self.program_lines.append(f"\timul\t${offset},\t%eax")
+                        self.program_lines.append(f"\taddl\t%eax,\t%edx")
+                        offset = offset * dim
+
+                    self.program_lines.append(f"\tleal\t-{id_node.address}(%ebp, %edx, 4),\t%eax")
+                else:
+                    self.program_lines.append(f"\tleal\t-{id_node.address}(%ebp),\t%eax")
+                self.program_lines.append(f"\tpushl\t%eax")
+
+        self.program_lines.append(f"\tcall\t_scanf")
+
+        for child_node in read_node.children:  
+            self.program_lines.append(f"\tpopl %eax")
+
+
     def build_overhead(self):
         overhead = f"""\t.file	"{self.filename}"
 	.text
@@ -258,6 +293,7 @@ LFB11:
 	.cfi_endproc
 LFE11:
 	.ident	"GCC: (MinGW.org GCC-8.2.0-3) 8.2.0"
+	.def	_scanf;	.scl	2;	.type	32;	.endef
 	.def	_printf;	.scl	2;	.type	32;	.endef"""
         self.program_lines.append(tail)
 

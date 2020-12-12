@@ -1,5 +1,5 @@
 from lexical_analyser import LexicalAnalyser
-from node import ForNode, GoToNode, IfNode, OperatorNode, PrintNode, PrintlnNode, ProgramNode, AssignNode, LiteralNode, SubRoutineNode, VariableNode
+from node import ForNode, GoToNode, IfNode, OperatorNode, PrintNode, PrintlnNode, ProgramNode, AssignNode, LiteralNode, ReadNode, SubRoutineNode, VariableNode
 
 import sys
 
@@ -80,6 +80,8 @@ class SyntaxAnalyser:
                 self.PRINT()
             elif keyword == "PRINTLN":
                 self.PRINTLN()
+            elif keyword == "READ":
+                self.READ()
             elif self.current_token.type == "identifier":
                 self.LET(with_keyword=False)
             else:
@@ -309,6 +311,26 @@ class SyntaxAnalyser:
             else:
                 self.get_next_token()
 
+    def READ(self):
+        read_node = ReadNode()
+        self.current_node.add_child(read_node)
+
+        self.get_next_token()
+        literal_node = LiteralNode(self.current_token.value)
+        read_node.add_child(literal_node)
+        if literal_node.type == "string":
+            literal_node.address = f"LC{len(self.string_list)}"
+            self.string_list.append(literal_node)
+        else:
+            raise Exception(f"Expected first argument to be a string. Received {self.current_token}.")
+
+        self.get_next_token()
+        while self.current_token.type != "separator" or self.current_token.value != "\n":
+            if self.current_token.type != "separator" or self.current_token.value != ",":
+                id_node = self.handle_identifier()
+                read_node.add_child(id_node)
+            else:
+                self.get_next_token()
 
     def PRINTLN(self):
         println_node = PrintlnNode()

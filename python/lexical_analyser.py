@@ -1,6 +1,5 @@
 import re
 from token import Token
-from typing import NewType
 
 import sys
 
@@ -100,11 +99,14 @@ class LexicalAnalyser:
                 break
         self.token_list.append(new_line_token)
             
-        for i, token in enumerate(self.token_list):
+        i = 0
+        while i < len(self.token_list):
+            token = self.token_list[i]
             token_is_literal = (token.type == "literal")
             previous_token_is_minus = (self.token_list[i-1].type == "operator" and self.token_list[i-1].value == "-")
             first_operand_is_literal_or_id = (self.token_list[i-2].type in ["literal", "identifier"])
             first_operand_is_closing_parenthesis = (self.token_list[i-2].type == "separator" and self.token_list[i-2].value == ")")
+
             if (token_is_literal and previous_token_is_minus and 
                 not first_operand_is_literal_or_id and not first_operand_is_closing_parenthesis):
 
@@ -112,16 +114,24 @@ class LexicalAnalyser:
                literal_token.value = "-" + literal_token.value
 
                self.token_list[i-1] = literal_token
+            else:
+                i += 1
 
-        for i, token in enumerate(self.token_list):
+        i = 0
+        while i < len(self.token_list):
+            token = self.token_list[i]
             token_is_id = (token.type == "identifier")
             previous_token_is_minus = (self.token_list[i-1].type == "operator" and self.token_list[i-1].value == "-")
             first_operand_is_literal_or_id = (self.token_list[i-2].type in ["literal", "identifier"])
             first_operand_is_closing_parenthesis = (self.token_list[i-2].type == "separator" and self.token_list[i-2].value == ")")
+            
             if (token_is_id and previous_token_is_minus and 
                 not first_operand_is_literal_or_id and not first_operand_is_closing_parenthesis):
                self.token_list[i-1].value = "*"
                self.token_list.insert(i-1, Token(type="literal", value="-1"))
+               i += 1
+
+            i += 1
 
         return self.token_list
 

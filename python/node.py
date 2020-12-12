@@ -213,6 +213,9 @@ class IfNode(Node):
 class SubRoutineNode(ProgramNode):
     pass
 
+class ReadNode(Node):
+    pass
+
 class PrintNode(Node):
     pass
 
