@@ -5,3 +5,6 @@ def is_int(s):
         return True
     except ValueError:
         return False
+
+class PanicModeException(Exception):
+    pass

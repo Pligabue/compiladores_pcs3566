@@ -3,7 +3,7 @@ from node import ForNode, GoToNode, IfNode, OperatorNode, PrintNode, PrintlnNode
 
 import sys
 
-from helpers import is_int
+from helpers import PanicModeException, is_int
 
 class SyntaxAnalyser:
 
@@ -86,7 +86,7 @@ class SyntaxAnalyser:
                 self.LET(with_keyword=False)
             else:
                 raise Exception(f"Invalid command at line {self.text_line}.")
-        except Exception as e:
+        except PanicModeException as e:
             self.current_node.children.pop()
             self.error_list.append((e, self.current_line_number))
             while self.current_token.value != "\n":
@@ -398,7 +398,7 @@ class SyntaxAnalyser:
                 self.get_next_token()
                 operands.append(subexpression_node)
             else:
-                raise Exception(f"Missing literal or identifier. Received {self.current_token.value}.")
+                raise PanicModeException(f"Missing literal or identifier. Received {self.current_token.value}.")
 
             if self.current_token.type == "operator":
                 if self.current_token.value in ["*", "/", "+", "-", "^"]:
@@ -409,12 +409,12 @@ class SyntaxAnalyser:
                     break
             elif self.current_token.type == "separator" or self.current_token.type == "keyword":
                 if level > 0 and self.current_token.value != ")":
-                    raise Exception(f"Missing closing parentheses. Check if every opening parenthesis has an associated closing parenthesis.")
+                    raise PanicModeException(f"Missing closing parentheses. Check if every opening parenthesis has an associated closing parenthesis.")
                 elif level == 0 and self.current_token.value == ")":    
-                    raise Exception(f"Missing opening parentheses. Check if every closing parenthesis has an associated opening parenthesis.")
+                    raise PanicModeException(f"Missing opening parentheses. Check if every closing parenthesis has an associated opening parenthesis.")
                 break
             else:
-                raise Exception(f"Incorrect symbol within expression. Received {self.current_token.value}.")
+                raise PanicModeException(f"Incorrect symbol within expression. Received {self.current_token.value}.")
     
         return self.build_expression_node(operators, operands)
 
