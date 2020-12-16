@@ -1,0 +1,16 @@
+000 DIM a[20]
+010 LET size = 20
+
+100 PRINT "Entre com os %d valores do vetor: ", size
+110 FOR i = 0 TO size-1
+120     READ "%d", a[i]
+130 NEXT
+
+200 PRINT "O vetor lido foi: {", size
+210 FOR i = 0 TO size-1
+220     PRINT "%d", a[i]
+230     IF i < size-1
+240         PRINT ", "
+250     END
+260 NEXT
+270 PRINT "}"

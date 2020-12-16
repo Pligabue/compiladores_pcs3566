@@ -4,14 +4,14 @@
 020     FOR j = 0 TO 2
 030         FOR k = 0 TO 3
 040             a[i][j][k] = i + j + k
-050         END
-060     END
-070 END
+050         NEXT
+060     NEXT
+070 NEXT
 
 080 FOR i = 0 TO 1
 090     FOR j = 0 TO 2
 100         FOR k = 0 TO 3
 110             PRINT "a[%d][%d][%d] = %d\n", i, j, k, a[i][j][k]
-120         END
-130     END
-140 END
+120         NEXT
+130     NEXT
+140 NEXT

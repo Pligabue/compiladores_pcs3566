@@ -4,19 +4,19 @@
 015 PRINT "ORIGINAL: "
 020 FOR i = 0 TO size-1
 030     PRINT "%d ", a[i]
-040 END
+040 NEXT
 050 PRINT "\n"
 
 060 FOR i = 0 TO size-1
-070      FOR j = 0 TO size-2
+070     FOR j = 0 TO size-2
 080         IF a[j] > a[j+1]
 090             temp = a[j]
 100             a[j] = a[j+1]
 110             a[j+1] = temp
 120         END
-130     END
-140 END
+130     NEXT
+140 NEXT
 145 PRINT "SORTED:   "
 150 FOR i = 0 TO size-1
 160     PRINT "%d ", a[i]
-170 END
+170 NEXT

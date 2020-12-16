@@ -76,6 +76,8 @@ class SyntaxAnalyser:
                 self.FOR()
             elif keyword == "END":
                 self.END()
+            elif keyword == "NEXT":
+                self.NEXT()
             elif keyword == "PRINT":
                 self.PRINT()
             elif keyword == "PRINTLN":
@@ -287,6 +289,16 @@ class SyntaxAnalyser:
             raise Exception(f"END keyword cannot be used at the global scope.")
         else:
             self.scope_stack.pop()
+            self.current_node = self.scope_stack[-1]
+        self.get_next_token()
+
+    def NEXT(self):
+        if len(self.scope_stack) <= 1:
+            raise Exception(f"END keyword cannot be used at the global scope.")
+        else:
+            previous_scope = self.scope_stack.pop()
+            if previous_scope.parent.node_type() != "for":
+                raise Exception(f"Next must be used in the context of a FOR loop. It was used in a {previous_scope.node_type()}.")
             self.current_node = self.scope_stack[-1]
         self.get_next_token()
 

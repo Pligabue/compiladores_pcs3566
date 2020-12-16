@@ -7,7 +7,7 @@
 050     IF i <> 9
 060         PRINT ", "
 070     END
-080 END
+080 NEXT
 090 PRINT "}\n"
 
 120 LET sum = 0
@@ -20,6 +20,6 @@
 190         PRINT "ABS VALUE = %d\n", -a[i]
 200         sum = sum - a[i]
 210     END
-220 END
+220 NEXT
 
 170 PRINT "SUM = %d\n", sum

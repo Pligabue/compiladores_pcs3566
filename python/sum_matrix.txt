@@ -7,13 +7,13 @@
 050     IF i <> 9
 060         PRINT ", "
 070     END
-080 END
+080 NEXT
 090 PRINT "}\n"
 
 120 LET sum = 0
 130 FOR i = 0 TO size-1
 140     PRINT "ACC = %d; ARRAY ITEM = %d\n", sum, a[i]
 150     sum = sum + a[i]
-160 END
+160 NEXT
 
 170 PRINT "SUM = %d\n", sum
